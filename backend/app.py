@@ -22,20 +22,6 @@ from safetensors.torch import load_file, save_file
 # Feel free to use a config.py or settings.py with a global export variable
 os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 
-# These are the DB credentials for your OWN MySQL
-# Don't worry about the deployment credentials, those are fixed
-# You can use a different DB name if you want to
-# LOCAL_MYSQL_USER = "root"
-# LOCAL_MYSQL_USER_PASSWORD = "Lukeshao2022" # Fill with personal password for MySQL
-# # TODO: Delegate these values to env. vars
-# LOCAL_MYSQL_PORT = 3306
-# LOCAL_MYSQL_DATABASE = "FitMyVibe"
-
-# mysql_engine = MySQLDatabaseHandler(LOCAL_MYSQL_USER,LOCAL_MYSQL_USER_PASSWORD,LOCAL_MYSQL_PORT,LOCAL_MYSQL_DATABASE)
-
-# Path to init.sql file. This file can be replaced with your own file for testing on localhost, but do NOT move the init.sql file
-# mysql_engine.load_file_into_db('dump.sql')
-
 app = Flask(__name__)
 CORS(app)
 
@@ -59,36 +45,10 @@ def vectorize_query(query):
     Vectorizes the ad-hoc query using pre-trained BERT embeddings.
     """
 
-    # merge_state_dict = {}
-    # files = ["tensor_pack/chunk_1_1.safetensors",
-    #         "tensor_pack/chunk_1_2.safetensors",
-    #         "tensor_pack/chunk_1_3.safetensors",
-    #         "tensor_pack/chunk_1_4.safetensors",
-    #         "tensor_pack/chunk_2.safetensors",
-    #         "tensor_pack/chunk_3.safetensors",
-    #        "tensor_pack/chunk_4.safetensors",
-    #         "tensor_pack/chunk_5.safetensors"]
-    # merged_file = "fashion-bert-output-v4/model.safetensors"
-
-    # def merge_files(files):
-    #     for file in files:
-    #         load_files_dict = load_file(file)
-    #         merge_state_dict.update(load_files_dict)
-    
-    #merge_files(files)
-
-    #save_file(merge_state_dict, merged_file)
-    #del merge_state_dict
-
     model = SentenceTransformer('fashion-bert-output-v4')
     encoded_query = model.encode([query], convert_to_numpy=True) #tokenizer(query, return_tensors='pt', padding=True, truncation=True)
     encoded_query = encoded_query / np.linalg.norm(encoded_query, axis=1, keepdims=True)
 
-    # with torch.no_grad():
-    #     outputs = model(**encoded_query)
-        
-    # query_embeddings = outputs.last_hidden_state[:, 0, :] should be an npdarray
-    # encoded_query = encoded_query.reshape(1, -1)
     encoded_query = encoded_query.astype("float32")
     print(f"Query embedding shape: {encoded_query.shape}")
     return encoded_query # query_embeddings
@@ -101,18 +61,6 @@ def vector_from_id(article_id):
     Format of the return value is a tuple, where the first value is the product ID
     and the second is the embedding represented as a list of decimals.
     """
-    # csv_path = 'FINAL-EMBEDDINGS.csv' # Replace with path to file (conditioned on gender and price)
-    # with open(csv_path, newline="", encoding="utf-8") as f:
-    #     reader = csv.reader(f)
-    #     header = next(reader)
-    #     for row in reader:
-    #         # row[0] is the id column
-    #         if row[0] == str(article_id):
-    #             # parse the remaining 3xx dimensions into floats
-    #             vals = [float(x) for x in row[1:]]
-    #             return (np.array(vals, dtype=float))
-    
-    # embs_prods = np.load("social-component/reddit/prod_embeddings-2.npy")
     return product_embs[article_id]
 
 def order_articles(query_embeddings, filtered_ids, article_vectors):
@@ -150,25 +98,6 @@ def order_articles(query_embeddings, filtered_ids, article_vectors):
     print("IDXS_P PRINTING")
     print(idxs_p)
     return [search_dict[search_id] for search_id in idxs_p]
-
-    # after table
-    sim_scores = []
-    article_ids = []
-    for article_id, article_vector in article_vectors:
-        tensor = torch.Tensor(article_vector)
-        sim = torch.cosine_similarity(expanded_q, tensor)
-        print(f"article id: {article_id} (sim score = {sim})")
-        sim_scores.append(sim)
-        article_ids.append(article_id)
-
-    articles_scores = list(zip(article_ids, sim_scores))
-    articles_scores.sort(key=lambda x : x[1], reverse=True)
-
-    ranked_articles_ids = []
-    for article_id, _ in articles_scores:
-        ranked_articles_ids.append(article_id)
-
-    return ranked_articles_ids
 
 
 def table_lookup(indices):
