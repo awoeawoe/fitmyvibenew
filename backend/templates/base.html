@@ -44,8 +44,8 @@
                         </select>
                     </div>
                     <h3>What is your budget?</h3>
-                    <h4>Select a budget range!</h4>
-                    <div class="input-box">
+                    <h4>Select a max price!</h4>
+                    <!-- <div class="input-box">
                         <img src="{{ url_for('static', filename='images/mag.png') }}" />
                         <select id="budget-dropdown" class="dropdown">
                             <option value="">I don't mind</option>
@@ -56,6 +56,12 @@
                             <option value="225">$201-$250</option>
                             <option value="275">$251-$300</option>
                         </select>
+                    </div> -->
+                    <div class="budget-value">
+                        <p class="budget-slider-value" id="budget-slider-value"></p>
+                    </div>
+                    <div class="budget-slider-container">
+                        <input type="range" min="1" max="300" value="150" class="budget-slider" id="slider">
                     </div>
                 </div>
 
@@ -140,7 +146,7 @@
             function filterText() {
                 document.getElementById("answer-box").innerHTML = "";
                 const gender = document.getElementById("gender-dropdown").value;
-                const budget = document.getElementById("budget-dropdown").value;
+                const budget = document.getElementById("slider").value;
                 const article = document.getElementById("articleType").value;
 
                 // const style = document.getElementById("style").value;
@@ -179,6 +185,15 @@
                         }
                     });
             }
+
+            // BUDGET SLIDER
+            var budgetSlider = document.getElementById("slider");
+            var budgetValue = document.getElementById("budget-slider-value");
+            budgetValue.innerHTML = "$" + budgetSlider.value;
+            budgetSlider.oninput = function() {
+                budgetValue.innerHTML = "$" + this.value;
+            }
+            
 
         </script>
 </body>

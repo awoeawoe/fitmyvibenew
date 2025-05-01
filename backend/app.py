@@ -233,12 +233,11 @@ def episodes_search():
                 continue
 
             gender_filter = True if gender == "" or gender == None else rec['gender'] == gender
+
             if not(isinstance(budget, float)) or (rec["price"] == ""):
                 budget_filter = True
             else:
-                budget_low = budget - 24
-                budget_high = budget + 25
-                budget_filter = float(rec['price']) >= budget_low and float(rec['price']) <= budget_high
+                budget_filter = float(rec['price']) <= budget
             article_filter = True if article == "" or article == None else rec['category'] == article
 
             # print(f"Filters for article {id}: G={gender_filter}, B={budget_filter}, A={article_filter}")
