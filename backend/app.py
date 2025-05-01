@@ -196,7 +196,7 @@ def episodes_search():
     
     def check_filters():
         filter_ids = []
-        for id in range(0, 1332):
+        for id in range(len(product_embs)):
             rec = items_by_id.get(id)
             if rec == None:
                 continue
@@ -226,12 +226,12 @@ def episodes_search():
     # Articles that pass the filter are stored in article_vectors
     # Make order articles use the article vectors as the set of articles to query
 
-    query_id = update_query_id()
+    # query_id = update_query_id()
 
-    FEEDBACK_QUERY[query_id] =  {
-        "query_vector": query_vector,
-        "pot_results" : filter_ids
-    }
+    # FEEDBACK_QUERY[query_id] =  {
+    #     "query_vector": query_vector,
+    #     "pot_results" : filter_ids
+    # }
 
     ranked_idx = order_articles(query_vector, filter_ids, article_vectors)
     ranked_results = table_lookup(ranked_idx)
@@ -240,23 +240,23 @@ def episodes_search():
     #print(ranked_results)
     return json.dumps(ranked_results, default=str)
 
-@app.route("/feedback")
-def feedback():
-    data      = 
-    qid = data["query_id"]
-    pos_ids = data.get("positive_ids", [])
-    neg_ids = data.get("negative_ids", [])
+# @app.route("/feedback")
+# def feedback():
+#     data      = 
+#     qid = data["query_id"]
+#     pos_ids = data.get("positive_ids", [])
+#     neg_ids = data.get("negative_ids", [])
 
-    if qid not in FEEDBACK_QUERY:
-        pass
+#     if qid not in FEEDBACK_QUERY:
+#         pass
 
     
 
-    new_query = rocchio(q_vec, pos_ids, neg_ids)
-    FEEDBACK_QUERY[qid]["q_vec"] = new_query           # accumulate feedback
+#     new_query = rocchio(q_vec, pos_ids, neg_ids)
+#     FEEDBACK_QUERY[qid]["q_vec"] = new_query           # accumulate feedback
 
-    ranked_idx = order_articles(new_query, pot_results, product_embs[pot_results])
-    ranked_results = table_lookup(ranked_idx)
-    return json.dumps(ranked_results, default=str)
+#     ranked_idx = order_articles(new_query, pot_results, product_embs[pot_results])
+#     ranked_results = table_lookup(ranked_idx)
+#     return json.dumps(ranked_results, default=str)
 
 
