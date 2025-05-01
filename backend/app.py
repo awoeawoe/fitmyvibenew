@@ -33,7 +33,7 @@ CORS(app)
 social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy")
 print(f"Reddit embedding shape: {social_embs.shape}")
 
-product_embs = np.load("social-component/reddit/NEW-EMBS-430.npy")
+product_embs = np.load("social-component/reddit/prod_embs_better.npy")
 print(f"Product embedding shape: {product_embs.shape}")
 
 #rocchio helper
