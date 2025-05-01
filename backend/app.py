@@ -80,7 +80,7 @@ def vectorize_query(query):
     #save_file(merge_state_dict, merged_file)
     #del merge_state_dict
 
-    model = SentenceTransformer('fashion-bert-output-v2')
+    model = SentenceTransformer('fashion-bert-output-v4')
     encoded_query = model.encode([query], convert_to_numpy=True) #tokenizer(query, return_tensors='pt', padding=True, truncation=True)
     encoded_query = encoded_query / np.linalg.norm(encoded_query, axis=1, keepdims=True)
 
@@ -238,7 +238,7 @@ def episodes_search():
 
     query_embeddings = vectorize_query(query)
 
-    items_path = Path("COMBINED-FINAL-DEDUPED.json")
+    items_path = Path("COMBINED-FINAL-DEDUPED-CLEAN2.json")
     with items_path.open("r", encoding="utf-8") as f:
         items_data = json.load(f)
 
