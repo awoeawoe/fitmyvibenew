@@ -227,7 +227,7 @@ def episodes_search():
     
     def check_filters():
         filter_ids = []
-        for id in range(0, 1332):
+        for id in range(len(product_embs)):
             rec = items_by_id.get(id)
             if rec == None:
                 continue
