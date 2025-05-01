@@ -105,7 +105,7 @@
                     .join(' ');
             }
 
-            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc) {
+            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, ) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
                 <div class="product-card">
@@ -117,6 +117,7 @@
                             <p class="clothing-desc">${prodDesc}</p>
                         </div>
                     </a>
+                    
                 </div>`;
             }
 
@@ -161,11 +162,6 @@
                         });
                     });
             }
-
-            // function updateBudgetValue(value) {
-            //    document.getElementById('budget-value').innerText = `$${value}`;
-            //    filterText();
-            //}
 
         </script>
 </body>

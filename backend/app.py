@@ -17,9 +17,14 @@ from pathlib import Path
 import faiss
 import re
 from safetensors.torch import load_file, save_file
+from typing import List
 
 # ROOT_PATH for linking with all your files. 
 # Feel free to use a config.py or settings.py with a global export variable
+
+#rocchio component dump
+FEEDBACK_QUERY : List = []
+
 os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 
 app = Flask(__name__)
@@ -30,6 +35,21 @@ print(f"Reddit embedding shape: {social_embs.shape}")
 
 product_embs = np.load("social-component/reddit/NEW-EMBS-430.npy")
 print(f"Product embedding shape: {product_embs.shape}")
+
+#rocchio helper
+def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
+    if upvotes:
+        pos_centroid = product_embs[upvotes].mean(axis=0)
+    else:
+        pos_centroid = 0
+    if downvotes:
+        neg_centroid = product_embs[downvotes].mean(axis=0)
+    else:
+        neg_centroid = 0
+
+    new_query = alpha * q_vec + beta * pos_centroid - gamma * neg_centroid
+    new_query /= np.linalg.norm(new_query, keepdims=True)
+    return new_query.astype("float32")
 
 @app.route("/")
 def home():
@@ -165,7 +185,7 @@ def episodes_search():
     else:
         article = None
 
-    query_embeddings = vectorize_query(query)
+    query_vector = vectorize_query(query)
 
     items_path = Path("COMBINED-FINAL-DEDUPED-CLEAN2.json")
     with items_path.open("r", encoding="utf-8") as f:
@@ -205,11 +225,38 @@ def episodes_search():
 
     # Articles that pass the filter are stored in article_vectors
     # Make order articles use the article vectors as the set of articles to query
-    ranked_idx = order_articles(query_embeddings, filter_ids, article_vectors)
 
+    query_id = update_query_id()
+
+    FEEDBACK_QUERY[query_id] =  {
+        "query_vector": query_vector,
+        "pot_results" : filter_ids
+    }
+
+    ranked_idx = order_articles(query_vector, filter_ids, article_vectors)
     ranked_results = table_lookup(ranked_idx)
 
     print("DONE RANKING")
-    print(ranked_results)
-
+    #print(ranked_results)
     return json.dumps(ranked_results, default=str)
+
+@app.route("/feedback")
+def feedback():
+    data      = 
+    qid = data["query_id"]
+    pos_ids = data.get("positive_ids", [])
+    neg_ids = data.get("negative_ids", [])
+
+    if qid not in FEEDBACK_QUERY:
+        pass
+
+    
+
+    new_query = rocchio(q_vec, pos_ids, neg_ids)
+    FEEDBACK_QUERY[qid]["q_vec"] = new_query           # accumulate feedback
+
+    ranked_idx = order_articles(new_query, pot_results, product_embs[pot_results])
+    ranked_results = table_lookup(ranked_idx)
+    return json.dumps(ranked_results, default=str)
+
+
