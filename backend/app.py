@@ -42,7 +42,7 @@ CORS(app)
 social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy")
 print(f"Reddit embedding shape: {social_embs.shape}")
 
-product_embs = np.load("social-component/reddit/julia_tries_prod_embs.npy")
+product_embs = np.load("social-component/reddit/NEW-EMBS-430.npy")
 print(f"Product embedding shape: {product_embs.shape}")
 
 @app.route("/")
@@ -59,8 +59,8 @@ def vectorize_query(query):
     Vectorizes the ad-hoc query using pre-trained BERT embeddings.
     """
 
-    #merge_state_dict = {}
-    #files = ["tensor_pack/chunk_1_1.safetensors",
+    # merge_state_dict = {}
+    # files = ["tensor_pack/chunk_1_1.safetensors",
     #         "tensor_pack/chunk_1_2.safetensors",
     #         "tensor_pack/chunk_1_3.safetensors",
     #         "tensor_pack/chunk_1_4.safetensors",
@@ -68,19 +68,19 @@ def vectorize_query(query):
     #         "tensor_pack/chunk_3.safetensors",
     #        "tensor_pack/chunk_4.safetensors",
     #         "tensor_pack/chunk_5.safetensors"]
-    #merged_file = "fashion-bert-output-v4/model.safetensors"
+    # merged_file = "fashion-bert-output-v4/model.safetensors"
 
-    def merge_files(files):
-        for file in files:
-            load_files_dict = load_file(file)
-            merge_state_dict.update(load_files_dict)
+    # def merge_files(files):
+    #     for file in files:
+    #         load_files_dict = load_file(file)
+    #         merge_state_dict.update(load_files_dict)
     
     #merge_files(files)
 
     #save_file(merge_state_dict, merged_file)
     #del merge_state_dict
 
-    model = SentenceTransformer('fashion-bert-output-v4')
+    model = SentenceTransformer('fashion-bert-output-v2')
     encoded_query = model.encode([query], convert_to_numpy=True) #tokenizer(query, return_tensors='pt', padding=True, truncation=True)
     encoded_query = encoded_query / np.linalg.norm(encoded_query, axis=1, keepdims=True)
 
@@ -178,7 +178,7 @@ def table_lookup(indices):
     its regular price, and a link to the image.
     """
     
-    items_path = Path("COMBINED-FINAL-DEDUPED.json")
+    items_path = Path("COMBINED-FINAL-DEDUPED-CLEAN2.json")
     with items_path.open("r", encoding="utf-8") as f:
         items_data = json.load(f)
 
