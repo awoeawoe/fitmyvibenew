@@ -202,7 +202,7 @@ def episodes_search():
     if budget == "":
         budget == None
     else:
-        budget = float(budget)
+        budget = float(budget) * 50
 
     article = request.args.get("article", default=None)
     if article == "T":
