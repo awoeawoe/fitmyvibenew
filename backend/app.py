@@ -23,7 +23,7 @@ from typing import List
 # Feel free to use a config.py or settings.py with a global export variable
 
 #rocchio component dump
-FEEDBACK_QUERY : List = []
+FEEDBACK_QUERY : dict[str, List] = {}
 
 os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 
@@ -50,6 +50,35 @@ def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
     new_query = alpha * q_vec + beta * pos_centroid - gamma * neg_centroid
     new_query /= np.linalg.norm(new_query, keepdims=True)
     return new_query.astype("float32")
+
+#create a new entry for FEEDBACK_QUERY
+def new_rocchio_record(query, query_vector, g, b, c, candidates):
+    
+    new_entry = {
+        "q_emb" : query_vector,
+        "filters" : (g, b, c),
+        "candidates" : candidates, 
+        "upvotes" : {},
+        "downvotes" : {}
+    }
+
+    if query not in FEEDBACK_QUERY:
+        FEEDBACK_QUERY[query] = []
+    FEEDBACK_QUERY[query].append(new_entry)
+
+
+#increment upvotes and downvotes
+def acc_votes(entry: dict,
+              up_dict:   dict[int | str, int],
+              down_dict: dict[int | str, int]) -> None:
+    for prod_id, count in up_dict.items():
+        prod_id = int(prod_id)
+        entry["upvotes"][prod_id] = entry["upvotes"].get(prod_id, 0) + int(count)
+
+    for prod_id, count in down_dict.items():
+        prod_id = int(prod_id)
+        entry["downvotes"][prod_id] = entry["downvotes"].get(prod_id, 0) + int(count)
+
 
 @app.route("/")
 def home():
@@ -160,6 +189,7 @@ def table_lookup(indices):
 @app.route("/articles")
 def episodes_search():
     query = request.args.get("inspirationDesc")
+
     gender = request.args.get("gender", default=None)
     if gender == "men":
         gender = "m"
@@ -173,6 +203,7 @@ def episodes_search():
         budget == None
     else:
         budget = float(budget)
+
     article = request.args.get("article", default=None)
     if article == "T":
         article = "Tops"
@@ -220,20 +251,26 @@ def episodes_search():
     
     filter_ids = check_filters()
     article_vectors = product_embs[filter_ids]
-    
-    # print(f"ARTICLE VECTORS: {article_vectors}")
 
     # Articles that pass the filter are stored in article_vectors
     # Make order articles use the article vectors as the set of articles to query
 
-    query_id = update_query_id()
+    # is the bottom still relevant????
 
-    FEEDBACK_QUERY[query_id] =  {
-        "query_vector": query_vector,
-        "pot_results" : filter_ids
-    }
+    if query not in FEEDBACK_QUERY:
+        new_rocchio_record(query, query_vector, gender, budget, article, filter_ids)
+        rec = FEEDBACK_QUERY[query][-1]
+    else:
+        rec = None
+        for r in FEEDBACK_QUERY[query]:
+            if r["filters"] == (gender, budget, article):
+                rec = r
+                break
+        if rec is None:
+            new_rocchio_record(query, query_vector, gender, budget, article, filter_ids)
+            rec = FEEDBACK_QUERY[query][-1]
 
-    ranked_idx = order_articles(query_vector, filter_ids, article_vectors)
+    ranked_idx   = order_articles(query_vector, filter_ids, article_vectors)
     ranked_results = table_lookup(ranked_idx)
 
     print("DONE RANKING")
@@ -242,21 +279,30 @@ def episodes_search():
 
 @app.route("/feedback")
 def feedback():
-    data      = 
-    qid = data["query_id"]
-    pos_ids = data.get("positive_ids", [])
-    neg_ids = data.get("negative_ids", [])
+    data = request.get_json(force=True)
+    query = data["query"]
+    query_emb = data["q_emb"]
+    filters = data["filters"]
+    up = data.get("upvotes", {})
+    down = data.get("downvotes", {})
 
-    if qid not in FEEDBACK_QUERY:
-        pass
+    if query not in FEEDBACK_QUERY:
+        return json.dumps({"error": "unknown query"}), 400
 
+    entry_list = FEEDBACK_QUERY[query]
+
+    ranked_results = []
+    for entry in entry_list:
+        if entry["filters"] == filters:
+            acc_votes(entry, up, down)
+            new_query = rocchio(query_emb, up, down)
+            entry["q_emb"] = new_query
+
+            candidates = entry["candidates"]
+            ranked_idx = order_articles(new_query, candidates, product_embs[candidates])
+            ranked_results = table_lookup(ranked_idx)
+            break
     
-
-    new_query = rocchio(q_vec, pos_ids, neg_ids)
-    FEEDBACK_QUERY[qid]["q_vec"] = new_query           # accumulate feedback
-
-    ranked_idx = order_articles(new_query, pot_results, product_embs[pot_results])
-    ranked_results = table_lookup(ranked_idx)
     return json.dumps(ranked_results, default=str)
 
 
