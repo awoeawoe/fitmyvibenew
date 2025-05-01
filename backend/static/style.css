@@ -235,3 +235,55 @@ input[type=range]::-webkit-slider-thumb {
     transform: scale(1.10);
     transition: transform 0.3s ease-in-out;
 }
+
+.voting-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.vote-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voting-buttons button {
+    background-color: #00000000;
+    border-color: #00000000;
+    font-size: 15pt;
+    transform: scale(1);
+    transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voting-buttons button:hover {
+    transform: scale(1.10);
+    transition: transform 0.3s ease-in-out;
+}
+
+.vote-count {
+    font-size: 14pt;
+    font-weight: bold;
+    color: rgb(138, 27, 132);
+    min-width: 24px;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    padding: 2px 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.vote-count.updated {
+    animation: pulse 0.3s ease-in-out;
+}

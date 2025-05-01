@@ -127,8 +127,14 @@
                             <p class="similarity-score">Similarity: </p>
                             <p><em>Does it fit the vibe?</em></p>
                             <div class="voting-buttons">
-                                <button class="upvote">❤️</button>
-                                <button class="downvote">💔</button>
+                                <div class="vote-container">
+                                    <button class="upvote" onclick="updateVoteCount(this, 'up')">❤️</button>
+                                    <span class="vote-count">0</span>
+                                </div>
+                                <div class="vote-container">
+                                    <button class="downvote" onclick="updateVoteCount(this, 'down')">💔</button>
+                                    <span class="vote-count">0</span>
+                                </div>
                             </div>
                         </div>
                     </div>                    
@@ -142,6 +148,21 @@
             //function sendFocus() {
             //    document.getElementById('inspirationDesc').focus()
             //}
+
+            function updateVoteCount(button, voteType) {
+                const voteContainer = button.closest('.vote-container');
+                const countSpan = voteContainer.querySelector('.vote-count');
+                
+                let count = parseInt(countSpan.textContent);
+                count += 1;
+                countSpan.textContent = count;
+                
+                countSpan.classList.add('updated');
+                
+                setTimeout(() => {
+                    countSpan.classList.remove('updated');
+                }, 300);
+            }
 
             function filterText() {
                 document.getElementById("answer-box").innerHTML = "";
