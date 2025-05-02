@@ -24,6 +24,8 @@ from typing import List
 
 #rocchio component dump
 FEEDBACK_QUERY : dict[str, List] = {}
+QUERY_STATES : dict[int, dict[int, (int, int)]] = {}
+NUM_QUERIES = 0
 
 os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 
@@ -39,23 +41,40 @@ print(f"Product embedding shape: {product_embs.shape}")
 #rocchio helper - Updated to handle empty lists better
 def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
     # Handle empty lists
-    if upvotes and len(upvotes) > 0:
-        try:
-            pos_centroid = product_embs[upvotes].mean(axis=0)
-        except Exception as e:
-            print(f"Error calculating positive centroid: {e}")
-            pos_centroid = np.zeros_like(q_vec)
-    else:
-        pos_centroid = np.zeros_like(q_vec)
+    # if upvotes and len(upvotes) > 0:
+    #     try:
+    #         pos_centroid = product_embs[upvotes].mean(axis=0)
+    #     except Exception as e:
+    #         print(f"Error calculating positive centroid: {e}")
+    #         pos_centroid = np.zeros_like(q_vec)
+    # else:
+    #     pos_centroid = np.zeros_like(q_vec)
     
-    if downvotes and len(downvotes) > 0:
-        try:
-            neg_centroid = product_embs[downvotes].mean(axis=0)
-        except Exception as e:
-            print(f"Error calculating negative centroid: {e}")
-            neg_centroid = np.zeros_like(q_vec)
+    # if downvotes and len(downvotes) > 0:
+    #     try:
+    #         neg_centroid = product_embs[downvotes].mean(axis=0)
+    #     except Exception as e:
+    #         print(f"Error calculating negative centroid: {e}")
+    #         neg_centroid = np.zeros_like(q_vec)
+    # else:
+    #     neg_centroid = np.zeros_like(q_vec)
+    pos_vec_list = []
+    for idx in upvotes:
+        pos_vec_list.append(product_embs[idx])
+    if (len(pos_vec_list) == 0):
+        pos_centroid = np.zeros_like(q_vec)
     else:
+        pos_vec_list = np.array(pos_vec_list)
+        pos_centroid = pos_vec_list.mean(axis=0)
+
+    neg_vec_list = []
+    for idx in downvotes:
+        neg_vec_list.append(product_embs[idx])
+    if (len(neg_vec_list) == 0):
         neg_centroid = np.zeros_like(q_vec)
+    else:
+        neg_vec_list = np.array(neg_vec_list)
+        neg_centroid = neg_vec_list.mean(axis=0)
 
     new_query = alpha * q_vec + beta * pos_centroid - gamma * neg_centroid
     
@@ -68,37 +87,30 @@ def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
 
 #create a new entry for FEEDBACK_QUERY
 def new_rocchio_record(query, query_vector, g, b, c, candidates):
-
-    if g == None:
-        g = ""
-    if c == None:
-        c = ""
     
     new_entry = {
+        "q_id" : NUM_QUERIES,
         "q_emb" : query_vector,
         "filters" : (g, b, c),
-        "candidates" : candidates, 
-        "upvotes" : {},
-        "downvotes" : {}
+        "candidates" : candidates
     }
 
     if query not in FEEDBACK_QUERY:
         FEEDBACK_QUERY[query] = []
     FEEDBACK_QUERY[query].append(new_entry)
-    print(FEEDBACK_QUERY)
 
 
 #increment upvotes and downvotes
-def acc_votes(entry: dict,
-              up_dict:   dict[int | str, int],
-              down_dict: dict[int | str, int]) -> None:
-    for prod_id, count in up_dict.items():
-        prod_id = int(prod_id)
-        entry["upvotes"][prod_id] = entry["upvotes"].get(prod_id, 0) + int(count)
+# def acc_votes(entry: dict,
+#               up_dict:   dict[int | str, int],
+#               down_dict: dict[int | str, int]) -> None:
+#     for prod_id, count in up_dict.items():
+#         prod_id = int(prod_id)
+#         entry["upvotes"][prod_id] = entry["upvotes"].get(prod_id, 0) + int(count)
 
-    for prod_id, count in down_dict.items():
-        prod_id = int(prod_id)
-        entry["downvotes"][prod_id] = entry["downvotes"].get(prod_id, 0) + int(count)
+#     for prod_id, count in down_dict.items():
+#         prod_id = int(prod_id)
+#         entry["downvotes"][prod_id] = entry["downvotes"].get(prod_id, 0) + int(count)
 
 
 @app.route("/")
@@ -209,22 +221,24 @@ def table_lookup(indices):
                 "prodImgLink": img_link,
                 "prodLink": prod_link,
                 "prodDesc": truncate_description(rec.get("description")),
-                "prodId": idx  # Include the product ID
+                "prodId": idx,  # Include the product ID
+                "prodUpvotes": QUERY_STATES[NUM_QUERIES][idx][0],
+                "prodDownvotes": QUERY_STATES[NUM_QUERIES][idx][1]
             })
     return ranked_results
 
 @app.route("/articles")
 def episodes_search():
+
+    global NUM_QUERIES
+    global QUERY_STATES
+    global FEEDBACK_QUERY
+    NUM_QUERIES += 1
+
     query = request.args.get("inspirationDesc")
-
     gender = request.args.get("gender", default=None)
-    if gender == "":
-        gender = None
-
     budget = request.args.get("budget", default=None)
-    if budget == "":
-        budget == None
-    else:
+    if budget != "":
         budget_raw = int(budget)
         mod3 = budget_raw % 3 + 1;
         div3 = budget_raw / 3 + 1;
@@ -234,10 +248,61 @@ def episodes_search():
         budget = base * mod3
 
     article = request.args.get("article", default=None)
-    if article == "":
-        article = None
 
+    ##### CASE 1 - OLD QUERY #####
+    if query in FEEDBACK_QUERY:
+        for logged in FEEDBACK_QUERY[query]:
+            if logged['filters'] == (gender, budget, article):
+                print("ENTERING CASE 1: OLD QUERY")
+                query_vector = logged['q_emb']
+                old_query_id = logged['q_id']
+
+                # Remove old query from log
+                FEEDBACK_QUERY[query] = [new_q for new_q in FEEDBACK_QUERY[query] if new_q['filters'] != (gender, budget, article)]
+                new_rocchio_record(query, query_vector, gender, budget, article, logged['candidates'])
+
+                # Copy old set of upvotes and downvotes for this query
+                QUERY_STATES[NUM_QUERIES] = QUERY_STATES[old_query_id]
+                print(QUERY_STATES)
+
+                # Recalculating embedding
+                upvote_ids = []
+                for idx in QUERY_STATES[NUM_QUERIES].keys():
+                    upvotes, _ = QUERY_STATES[NUM_QUERIES][idx]
+                    for _ in range(upvotes):
+                        upvote_ids.append(idx)
+
+                downvote_ids = []
+                for idx in QUERY_STATES[NUM_QUERIES].keys():
+                    _, downvotes = QUERY_STATES[NUM_QUERIES][idx]
+                    for _ in range(downvotes):
+                        downvote_ids.append(idx)
+                
+                updated_query = rocchio(query_vector, upvote_ids, downvote_ids)
+                
+                # Lookup
+                ranked_ids_and_scores = order_articles(query_vector, logged['candidates'], product_embs[logged['candidates']])
+                ranked_idx = [idx for idx, _ in ranked_ids_and_scores]
+                ranked_scores = [score for _, score in ranked_ids_and_scores]
+                ranked_results = table_lookup(ranked_idx)
+
+                # Attaching sim scores
+                count = 0
+                for result in ranked_results:
+                    result['simScore'] = ranked_scores[count]
+                    count += 1
+
+                print("DONE RANKING")
+                return json.dumps(ranked_results, default=str)
+
+    ##### CASE 2 - NEW QUERY #####
     query_vector = vectorize_query(query)
+
+    # Create new query result state for possible reverting
+    QUERY_STATES[NUM_QUERIES] = {}
+    for prod_id in range(len(product_embs)):
+        QUERY_STATES[NUM_QUERIES][prod_id] = (0, 0)
+    print(QUERY_STATES)
 
     items_path = Path("COMBINED-FINAL-DEDUPED-CLEAN2.json")
     with items_path.open("r", encoding="utf-8") as f:
@@ -245,7 +310,6 @@ def episodes_search():
 
     items_by_id = {item["ID"]: item for item in items_data}
 
-    
     def check_filters():
         filter_ids = []
         for id in range(len(product_embs)):
@@ -269,25 +333,12 @@ def episodes_search():
         return filter_ids
     
     filter_ids = check_filters()
+    # Create record for Rocchio's
+    new_rocchio_record(query, query_vector, gender, budget, article, filter_ids)
     article_vectors = product_embs[filter_ids]
 
     # Articles that pass the filter are stored in article_vectors
     # Make order articles use the article vectors as the set of articles to query
-
-    # is the bottom still relevant????
-
-    if query not in FEEDBACK_QUERY:
-        new_rocchio_record(query, query_vector, gender, budget, article, filter_ids)
-        rec = FEEDBACK_QUERY[query][-1]
-    else:
-        rec = None
-        for r in FEEDBACK_QUERY[query]:
-            if r["filters"] == (gender, budget, article):
-                rec = r
-                break
-        if rec is None:
-            new_rocchio_record(query, query_vector, gender, budget, article, filter_ids)
-            rec = FEEDBACK_QUERY[query][-1]
 
     ranked_ids_and_scores = order_articles(query_vector, filter_ids, article_vectors)
     ranked_idx = [idx for idx, _ in ranked_ids_and_scores]
@@ -301,11 +352,14 @@ def episodes_search():
         count += 1
 
     print("DONE RANKING")
-    return json.dumps(ranked_results, default=str)
+    return json.dumps(ranked_results, default=str)    
 
 
 @app.route("/save_vote", methods=['POST'])
 def save_vote():
+
+    global QUERY_STATES
+
     data = request.get_json()
     product_id = data.get("product_id")
     vote_type = data.get("vote_type")
@@ -336,123 +390,91 @@ def save_vote():
     if query not in FEEDBACK_QUERY:
         return json.dumps({"error": "Unknown query"}), 400
     
-    # success = False
-    # for entry in FEEDBACK_QUERY[query]:
-    #     if product_id in entry["candidates"]:
-    #         if vote_type == 'up':
-    #             if vote_value == 0:  
-    #                 if product_id in entry["upvotes"]:
-    #                     del entry["upvotes"][product_id]
-    #             else:
-    #                 entry["upvotes"][product_id] = 1
-                   
-    #                 if product_id in entry["downvotes"]:
-    #                     del entry["downvotes"][product_id]
-    #         else:  
-    #             if vote_value == 0: 
-    #                 if product_id in entry["downvotes"]:
-    #                     del entry["downvotes"][product_id]
-    #             else:  
-    #                 entry["downvotes"][product_id] = 1
-                    
-    #                 if product_id in entry["upvotes"]:
-    #                     del entry["upvotes"][product_id]
-    #         success = True
+    # Logging vote
+    former_tuple = QUERY_STATES[NUM_QUERIES][product_id]
 
-    for entry in FEEDBACK_QUERY[query]:
-        
-        print(entry['filters'])
-        print((gender, budget, article))
+    if vote_type == 'up':
+        if vote_value == 1:
+            QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0] + 1, former_tuple[1])
+        else:
+            QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0] - 1, former_tuple[1])
+    else:
+        if vote_value == 1:
+            QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] + 1)
+        else:
+            QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] - 1)
 
-        if entry['filters'] == (gender, budget, article):
-            if vote_type == 'up':
-                if vote_value == 0:  
-                    if product_id in entry["upvotes"]:
-                        del entry["upvotes"][product_id]
-                else:
-                    entry["upvotes"][product_id] = 1
-                   
-                    if product_id in entry["downvotes"]:
-                        del entry["downvotes"][product_id]
-            else:  
-                if vote_value == 0: 
-                    if product_id in entry["downvotes"]:
-                        del entry["downvotes"][product_id]
-                else:  
-                    entry["downvotes"][product_id] = 1
-                    
-                    if product_id in entry["upvotes"]:
-                        del entry["upvotes"][product_id]
+    print(QUERY_STATES)
             
     return json.dumps({"success": True, "message": f"{vote_type} vote recorded for product {product_id}"}), 200
 
 
-@app.route("/feedback", methods=['GET', 'POST'])
-def feedback():
-    try:
-        data = request.get_json(force=True)
-        print(data)
-        query = data["query"]
-        filters_list = data["filters"]  
-        gender, budget, article = filters_list
+# @app.route("/feedback", methods=['GET', 'POST'])
+# def feedback():
+#     try:
+#         data = request.get_json(force=True)
+#         print(data)
+#         query = data["query"]
+#         filters_list = data["filters"]  
+#         gender, budget, article = filters_list
         
-        upvotes = data.get("upvotes", {})
-        downvotes = data.get("downvotes", {})
+#         upvotes = data.get("upvotes", {})
+#         downvotes = data.get("downvotes", {})
 
-        if query not in FEEDBACK_QUERY:
-            return json.dumps({"error": "unknown query"}), 400
+#         if query not in FEEDBACK_QUERY:
+#             return json.dumps({"error": "unknown query"}), 400
 
-        entry_list = FEEDBACK_QUERY[query]
+#         entry_list = FEEDBACK_QUERY[query]
 
-        ranked_results = []
-        filters_tuple = (gender, budget, article)
+#         ranked_results = []
+#         filters_tuple = (gender, budget, article)
         
-        for entry in entry_list:
-            if entry["filters"] == filters_tuple:
-                upvotes_int = {int(k): v for k, v in upvotes.items()}
-                downvotes_int = {int(k): v for k, v in downvotes.items()}
+#         for entry in entry_list:
+#             if entry["filters"] == filters_tuple:
+#                 upvotes_int = {int(k): v for k, v in upvotes.items()}
+#                 downvotes_int = {int(k): v for k, v in downvotes.items()}
                 
-                upvote_ids = list(upvotes_int.keys())
-                downvote_ids = list(downvotes_int.keys())
+#                 upvote_ids = list(upvotes_int.keys())
+#                 downvote_ids = list(downvotes_int.keys())
                 
-                print(f"Applying Rocchio with upvotes: {upvote_ids}, downvotes: {downvote_ids}")
+#                 print(f"Applying Rocchio with upvotes: {upvote_ids}, downvotes: {downvote_ids}")
                 
-                # apply Rocchio algorithm - only if we have votes
-                if upvote_ids or downvote_ids:
-                    new_query = rocchio(
-                        entry["q_emb"], 
-                        upvote_ids,
-                        downvote_ids
-                    )
+#                 # apply Rocchio algorithm - only if we have votes
+#                 if upvote_ids or downvote_ids:
+#                     new_query = rocchio(
+#                         entry["q_emb"], 
+#                         upvote_ids,
+#                         downvote_ids
+#                     )
                     
-                    # update the entry with the new query
-                    entry["q_emb"] = new_query
-                else:
-                    new_query = entry["q_emb"]
+#                     # update the entry with the new query
+#                     entry["q_emb"] = new_query
+#                 else:
+#                     new_query = entry["q_emb"]
 
-                # candidate product IDs
-                candidates = entry["candidates"]
+#                 # candidate product IDs
+#                 candidates = entry["candidates"]
                 
-                if not candidates:
-                    return json.dumps({"error": "No candidate products found"}), 400
+#                 if not candidates:
+#                     return json.dumps({"error": "No candidate products found"}), 400
                 
-                # get article vectors for these candidates
-                article_vectors = product_embs[candidates]
+#                 # get article vectors for these candidates
+#                 article_vectors = product_embs[candidates]
             
-                # oorder articles based on the new query
-                ranked_idx = order_articles(new_query.reshape(1, -1), candidates, article_vectors)
+#                 # oorder articles based on the new query
+#                 ranked_idx = order_articles(new_query.reshape(1, -1), candidates, article_vectors)
                 
-                # look up product details
-                ranked_results = table_lookup(ranked_idx)
-                break
+#                 # look up product details
+#                 ranked_results = table_lookup(ranked_idx)
+#                 break
         
-        if not ranked_results:
-            return json.dumps({"error": "No matching entry found or no results after reranking"}), 400
+#         if not ranked_results:
+#             return json.dumps({"error": "No matching entry found or no results after reranking"}), 400
         
-        return json.dumps(ranked_results, default=str)
+#         return json.dumps(ranked_results, default=str)
     
-    except Exception as e:
-        import traceback
-        print(f"Error in feedback route: {str(e)}")
-        print(traceback.format_exc())
-        return json.dumps({"error": f"Server error: {str(e)}"}), 500
+#     except Exception as e:
+#         import traceback
+#         print(f"Error in feedback route: {str(e)}")
+#         print(traceback.format_exc())
+#         return json.dumps({"error": f"Server error: {str(e)}"}), 500

@@ -97,9 +97,9 @@
                 <!-- SUBMIT BUTTON -->
                 <div class="submit-button">
                     <button onclick="filterText()">Get My Recommendations</button>
-                    <button id="refresh-button" onclick="refreshWithFeedback()"
+                    <!-- <button id="refresh-button" onclick="refreshWithFeedback()"
                         style="display: none; margin-top: 10px; background-color: #8A1B84;">Refresh with
-                        Feedback</button>
+                        Feedback</button> -->
                 </div>
 
                 <div id="answer-box"></div>
@@ -114,7 +114,7 @@
                     .join(' ');
             }
 
-            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore, prodId) {
+            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore, prodId, prodUpvotes, prodDownvotes) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
                 <div class="product-card" id="${prodId}">
@@ -131,11 +131,11 @@
                             <div class="voting-buttons">
                                 <div class="vote-container">
                                     <button class="upvote" onclick="updateVoteCount(this, 'up')">❤️</button>
-                                    <span class="vote-count">0</span>
+                                    <span class="vote-count">${prodUpvotes}</span>
                                 </div>
                                 <div class="vote-container">
                                     <button class="downvote" onclick="updateVoteCount(this, 'down')">💔</button>
-                                    <span class="vote-count">0</span>
+                                    <span class="vote-count">${prodDownvotes}</span>
                                 </div>
                             </div>
                         </div>
@@ -147,12 +147,61 @@
                 return `<h3 class="no-results">No results found...What a unique vibe!</h3>`;
             }
 
+            function filterText() {
+                document.getElementById("answer-box").innerHTML = "";
+                const gender = document.getElementById("gender-dropdown").value;
+                const budget = document.getElementById("slider").value;
+                const article = document.getElementById("articleType").value;
+                const description = document.getElementById("inspirationDesc").value;
+
+                if (!description) {
+                    console.log("Description is null or empty:", description);
+                } else {
+                    console.log("Description value:", description);
+                }
+
+                fetch("/articles?" + new URLSearchParams({
+                    gender: gender || "",
+                    budget: budget || "",
+                    article: article || "",
+                    inspirationDesc: description || "",
+                }).toString())
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const seenItems = new Set();
+                        data.slice(0, 8).forEach((row, index) => {
+                            if (!seenItems.has(row.prodName)) {
+                                seenItems.add(row.prodName);
+                                let tempDiv = document.createElement("div");
+
+                                const prodId = row.prodId !== undefined ? row.prodId : index;
+                                tempDiv.innerHTML = answerBoxTemplate(
+                                    row.prodName,
+                                    row.prodPrice,
+                                    row.prodImgLink,
+                                    row.prodLink,
+                                    row.prodDesc,
+                                    row.simScore,
+                                    row.prodId,
+                                    row.prodUpvotes,
+                                    row.prodDownvotes
+                                );
+                                document.getElementById("answer-box").appendChild(tempDiv);
+                            }
+                        });
+                        if (seenItems.size == 0) {
+                            let emptyDiv = document.createElement("div");
+                            emptyDiv.innerHTML = noResults();
+                            document.getElementById("answer-box").appendChild(emptyDiv);
+                        }
+                    });
+            }
+
             // changed so it uses a true like/dislike system
             function updateVoteCount(button, voteType) {
                 const productCard = button.closest('.product-card');
                 const voteContainer = button.closest('.vote-container');
                 const countSpan = voteContainer.querySelector('.vote-count');
-
 
                 const oppositeType = voteType === 'up' ? 'down' : 'up';
                 const oppositeContainer = productCard.querySelector(`.vote-container:has(.${oppositeType}vote)`);
@@ -189,9 +238,6 @@
                     countSpan.classList.remove('updated');
                 }, 300);
 
-                // refresh button
-                document.getElementById('refresh-button').style.display = 'block';
-
                 // product info
                 const productId = productCard.id;
 
@@ -227,143 +273,94 @@
                     .catch(error => console.error('Error saving vote:', error));
             }
 
-            // fic rocchio...
-            function refreshWithFeedback() {
-                const gender = document.getElementById("gender-dropdown").value;
-                const budget = document.getElementById("slider").value;
-                const article = document.getElementById("articleType").value;
-                const description = document.getElementById("inspirationDesc").value;
+            // // fic rocchio...
+            // function refreshWithFeedback() {
+            //     const gender = document.getElementById("gender-dropdown").value;
+            //     const budget = document.getElementById("slider").value;
+            //     const article = document.getElementById("articleType").value;
+            //     const description = document.getElementById("inspirationDesc").value;
 
-                // Collect votes data - only counting active votes
-                const upvotes = {};
-                const downvotes = {};
+            //     // Collect votes data - only counting active votes
+            //     const upvotes = {};
+            //     const downvotes = {};
 
-                // Get all product cards
-                const productCards = document.querySelectorAll('.product-card');
-                productCards.forEach(card => {
-                    const productId = card.dataset.productId;
-                    const upvoteButton = card.querySelector('.upvote');
-                    const downvoteButton = card.querySelector('.downvote');
+            //     // Get all product cards
+            //     const productCards = document.querySelectorAll('.product-card');
+            //     productCards.forEach(card => {
+            //         const productId = card.dataset.productId;
+            //         const upvoteButton = card.querySelector('.upvote');
+            //         const downvoteButton = card.querySelector('.downvote');
 
-                    if (upvoteButton.classList.contains('active')) {
-                        upvotes[productId] = 1;
-                    }
+            //         if (upvoteButton.classList.contains('active')) {
+            //             upvotes[productId] = 1;
+            //         }
 
-                    if (downvoteButton.classList.contains('active')) {
-                        downvotes[productId] = 1;
-                    }
-                });
+            //         if (downvoteButton.classList.contains('active')) {
+            //             downvotes[productId] = 1;
+            //         }
+            //     });
 
-                if (Object.keys(upvotes).length === 0 && Object.keys(downvotes).length === 0) {
-                    alert('Please vote on some items first!');
-                    return;
-                }
+            //     if (Object.keys(upvotes).length === 0 && Object.keys(downvotes).length === 0) {
+            //         alert('Please vote on some items first!');
+            //         return;
+            //     }
 
-                // show loading state
-                document.getElementById("answer-box").innerHTML = "<div class='loading'>Updating recommendations based on your feedback...</div>";
+            //     // show loading state
+            //     document.getElementById("answer-box").innerHTML = "<div class='loading'>Updating recommendations based on your feedback...</div>";
 
-                fetch("/feedback", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query: description,
-                        filters: [gender, budget, article],
-                        upvotes: upvotes,
-                        downvotes: downvotes
-                    })
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok: ' + response.statusText);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // clear current
-                        document.getElementById("answer-box").innerHTML = "";
+            //     fetch("/feedback", {
+            //         method: 'POST',
+            //         headers: {
+            //             'Content-Type': 'application/json',
+            //         },
+            //         body: JSON.stringify({
+            //             query: description,
+            //             filters: [gender, budget, article],
+            //             upvotes: upvotes,
+            //             downvotes: downvotes
+            //         })
+            //     })
+            //         .then(response => {
+            //             if (!response.ok) {
+            //                 throw new Error('Network response was not ok: ' + response.statusText);
+            //             }
+            //             return response.json();
+            //         })
+            //         .then(data => {
+            //             // clear current
+            //             document.getElementById("answer-box").innerHTML = "";
 
-                        // new results
-                        const seenItems = new Set();
-                        data.forEach(row => {
-                            if (!seenItems.has(row.prodName)) {
-                                seenItems.add(row.prodName);
-                                let tempDiv = document.createElement("div");
-                                tempDiv.innerHTML = answerBoxTemplate(
-                                    row.prodName,
-                                    row.prodPrice,
-                                    row.prodImgLink,
-                                    row.prodLink,
-                                    row.prodDesc,
-                                    row.prodId
-                                );
-                                document.getElementById("answer-box").appendChild(tempDiv);
-                            }
-                        });
+            //             // new results
+            //             const seenItems = new Set();
+            //             data.forEach(row => {
+            //                 if (!seenItems.has(row.prodName)) {
+            //                     seenItems.add(row.prodName);
+            //                     let tempDiv = document.createElement("div");
+            //                     tempDiv.innerHTML = answerBoxTemplate(
+            //                         row.prodName,
+            //                         row.prodPrice,
+            //                         row.prodImgLink,
+            //                         row.prodLink,
+            //                         row.prodDesc,
+            //                         row.prodId
+            //                     );
+            //                     document.getElementById("answer-box").appendChild(tempDiv);
+            //                 }
+            //             });
 
-                        if (seenItems.size == 0) {
-                            let emptyDiv = document.createElement("div");
-                            emptyDiv.innerHTML = noResults();
-                            document.getElementById("answer-box").appendChild(emptyDiv);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error refreshing results:', error);
-                        document.getElementById("answer-box").innerHTML = "<div class='error'>Error updating recommendations. Please try again.</div>";
-                    });
-            }
-
-            function filterText() {
-                document.getElementById("answer-box").innerHTML = "";
-                const gender = document.getElementById("gender-dropdown").value;
-                const budget = document.getElementById("slider").value;
-                const article = document.getElementById("articleType").value;
-                const description = document.getElementById("inspirationDesc").value;
+            //             if (seenItems.size == 0) {
+            //                 let emptyDiv = document.createElement("div");
+            //                 emptyDiv.innerHTML = noResults();
+            //                 document.getElementById("answer-box").appendChild(emptyDiv);
+            //             }
+            //         })
+            //         .catch(error => {
+            //             console.error('Error refreshing results:', error);
+            //             document.getElementById("answer-box").innerHTML = "<div class='error'>Error updating recommendations. Please try again.</div>";
+            //         });
+            // }
 
 
-                document.getElementById("refresh-button").style.display = "none";
-
-                if (!description) {
-                    console.log("Description is null or empty:", description);
-                } else {
-                    console.log("Description value:", description);
-                }
-
-                fetch("/articles?" + new URLSearchParams({
-                    gender: gender || "",
-                    budget: budget || "",
-                    article: article || "",
-                    inspirationDesc: description || "",
-                }).toString())
-                    .then((response) => response.json())
-                    .then((data) => {
-                        const seenItems = new Set();
-                        data.slice(0, 8).forEach((row, index) => {
-                            if (!seenItems.has(row.prodName)) {
-                                seenItems.add(row.prodName);
-                                let tempDiv = document.createElement("div");
-
-                                const prodId = row.prodId !== undefined ? row.prodId : index;
-                                tempDiv.innerHTML = answerBoxTemplate(
-                                    row.prodName,
-                                    row.prodPrice,
-                                    row.prodImgLink,
-                                    row.prodLink,
-                                    row.prodDesc,
-                                    row.simScore,
-                                    row.prodId
-                                );
-                                document.getElementById("answer-box").appendChild(tempDiv);
-                            }
-                        });
-                        if (seenItems.size == 0) {
-                            let emptyDiv = document.createElement("div");
-                            emptyDiv.innerHTML = noResults();
-                            document.getElementById("answer-box").appendChild(emptyDiv);
-                        }
-                    });
-            }
 
             //budget
             var budgetSlider = document.getElementById("slider");
