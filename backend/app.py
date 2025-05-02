@@ -192,13 +192,19 @@ def vector_from_id(article_id):
 
 def get_relevant_comments(query_embeds):
     k_corpus = 10
-    # q_emb = query_embeds
-
     sim_u   = cosine_similarity(query_embeds, social_embs)
     idxs_u  = np.argsort(sim_u[0])[::-1][:k_corpus]
-    idxs_py = idxs_u.tolist()
+     
+    results = []
+    for i in idxs_u:
+        text  = socinfo_id_to_text[i]
+        score = float(sim_u[0][i])
+        results.append({
+            "text": text,
+            "sim_score": score
+        })
 
-    return [socinfo_id_to_text[i] for i in idxs_py if i in socinfo_id_to_text]
+    return results
 
 def order_articles(query_embeddings, filtered_ids, article_vectors):
     """
