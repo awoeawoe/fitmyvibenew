@@ -38,6 +38,10 @@ print(f"Reddit embedding shape: {social_embs.shape}")
 product_embs = np.load("social-component/reddit/prod_embs_better.npy")
 print(f"Product embedding shape: {product_embs.shape}")
 
+comments_path = Path("social-component/reddit/filtered_texts_reddit.json")
+with comments_path.open("r", encoding="utf-8") as f:
+    soc_info = json.load(f)
+
 #rocchio helper - Updated to handle empty lists better
 def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
     # Handle empty lists
@@ -144,6 +148,15 @@ def vector_from_id(article_id):
     and the second is the embedding represented as a list of decimals.
     """
     return product_embs[article_id]
+
+def get_relevant_comments(query_embeds):
+    k_corpus = 10
+
+    q_emb = query_embeds
+
+    sim_u = cosine_similarity(q_emb, social_embs)  # (1, N)
+    idxs_u = np.argsort(sim_u[0])[::-1][:k_corpus]
+    return json.dumps(soc_info[idxs_u])
 
 def order_articles(query_embeddings, filtered_ids, article_vectors):
     """
@@ -255,6 +268,7 @@ def episodes_search():
             if logged['filters'] == (gender, budget, article):
                 print("ENTERING CASE 1: OLD QUERY")
                 query_vector = logged['q_emb']
+
                 old_query_id = logged['q_id']
 
                 # Remove old query from log
@@ -350,8 +364,15 @@ def episodes_search():
         count += 1
 
     print("DONE RANKING")
-    return json.dumps(ranked_results, default=str)    
+    return json.dumps(ranked_results, default=str)  
 
+@app.route("/comments")
+def save_comments():
+    data = request.get_json()
+    query = data.get("query")
+    query_vec = vectorize_query(query)
+    comments = get_relevant_comments(query_vec)
+    return comments
 
 @app.route("/save_vote", methods=['POST'])
 def save_vote():
