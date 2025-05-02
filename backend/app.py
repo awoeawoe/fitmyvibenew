@@ -32,10 +32,10 @@ os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 app = Flask(__name__)
 CORS(app)
 
-social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy")
+social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy", allow_pickle=True)
 print(f"Reddit embedding shape: {social_embs.shape}")
 
-product_embs = np.load("social-component/reddit/prod_embs_better.npy")
+product_embs = np.load("social-component/reddit/prod_embs_better.npy", allow_pickle=True)
 print(f"Product embedding shape: {product_embs.shape}")
 
 comments_path = Path("social-component/reddit/filtered_texts_reddit.json")
