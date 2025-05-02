@@ -102,7 +102,11 @@
                         Feedback</button> -->
                 </div>
 
+                <div id="answer-title-box"></div>
                 <div id="answer-box"></div>
+
+                <div id="reddit-title-box"></div>
+                <div id="reddit-box"></div>
             </div>
         </div>
         <script>
@@ -152,23 +156,68 @@
                     window.open(url, '_blank');
                 }
             }
+            function defaultTitle() {
+                return `<h3 class="answer-title">Here are some items that fit your vibe!</h3>`;
+            }
 
             function noResults() {
-                return `<h3 class="no-results">No results found...What a unique vibe!</h3>`;
+                return `<h3 class="answer-title">No results found...What a unique vibe!</h3>`;
+            }
+
+            function redditTitle() {
+                return `<h3 class="answer-title">Here's what people online are saying about your search \
+                (via Reddit comments that contain similar words): </h3>`;
+            }
+
+            function showcomments(query) {
+                console.log("COMMENTS RAN")
+                const redditBox = document.getElementById('reddit-box');
+                redditBox.innerHTML = "";
+              
+                fetch('/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                })
+                .then(res => res.text())
+                .then(txt => JSON.parse(txt))
+                .then(comments => {
+                    console.log(comments)
+                    if (!comments.length) {
+                        redditBox.innerHTML = `<p class="answer-title">No Reddit comments found.</p>`;
+                        return;
+                    }
+                    comments.forEach(c => {
+                        const div = document.createElement('div');
+                        div.className = 'reddit-box';
+                        div.innerHTML = `<p class="comment-body">${c}</p>`;
+                        redditBox.appendChild(div);
+                    });
+                })
+                .catch(err => {
+                  console.error('Error loading comments:', err);
+                  redditBox.innerHTML = '<p class="error">Failed to load comments.</p>';
+                });
             }
 
             function filterText() {
                 document.getElementById("answer-box").innerHTML = "";
+                document.getElementById("reddit-title-box").innerHTML = "";
                 const gender = document.getElementById("gender-dropdown").value;
                 const budget = document.getElementById("slider").value;
                 const article = document.getElementById("articleType").value;
                 const description = document.getElementById("inspirationDesc").value;
+
+                document.getElementById("answer-title-box").innerHTML = "";
 
                 if (!description) {
                     console.log("Description is null or empty:", description);
                 } else {
                     console.log("Description value:", description);
                 }
+                
+                console.log("COMMENTS NOW")
+                showcomments(description);
 
                 fetch("/articles?" + new URLSearchParams({
                     gender: gender || "",
@@ -179,6 +228,10 @@
                     .then((response) => response.json())
                     .then((data) => {
                         const seenItems = new Set();
+                        let emptyDiv0 = document.createElement("div");
+                        emptyDiv0.innerHTML = defaultTitle();
+                        document.getElementById("answer-title-box").appendChild(emptyDiv0);
+
                         data.slice(0, 8).forEach((row, index) => {
                             if (!seenItems.has(row.prodName)) {
                                 seenItems.add(row.prodName);
@@ -199,10 +252,16 @@
                                 document.getElementById("answer-box").appendChild(tempDiv);
                             }
                         });
-                        if (seenItems.size == 0) { 
+
+                        let emptyDiv00 = document.createElement("div");
+                        emptyDiv00.innerHTML = redditTitle();
+                        document.getElementById("reddit-title-box").appendChild(emptyDiv00);
+
+                        if (seenItems.size == 0) {
+                            document.getElementById("answer-title-box").innerHTML = "";
                             let emptyDiv = document.createElement("div");
                             emptyDiv.innerHTML = noResults();
-                            document.getElementById("answer-box").appendChild(emptyDiv);
+                            document.getElementById("answer-title-box").appendChild(emptyDiv);
                         }
                     });
             }

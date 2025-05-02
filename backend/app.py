@@ -32,13 +32,10 @@ os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 app = Flask(__name__)
 CORS(app)
 
-<<<<<<< HEAD
 social_embs_1 = np.load("social-component/reddit/reddit_embs_1.npy", allow_pickle=True)
 social_embs_2 = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
-social_embs = np.concatenate(social_embs_1, social_embs_2)
-=======
-social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy", allow_pickle=True)
->>>>>>> fa44408690a626bde071113f8ec0024ce71f3ecb
+social_embs = np.concatenate((social_embs_1, social_embs_2), axis=0)
+
 print(f"Reddit embedding shape: {social_embs.shape}")
 del social_embs_1
 del social_embs_2
@@ -182,12 +179,18 @@ def vector_from_id(article_id):
 
 def get_relevant_comments(query_embeds):
     k_corpus = 10
+    # q_emb = query_embeds
 
-    q_emb = query_embeds
+    sim_u   = cosine_similarity(query_embeds, social_embs)
+    idxs_u  = np.argsort(sim_u[0])[::-1][:k_corpus]
+    idxs_py = idxs_u.tolist()
 
-    sim_u = cosine_similarity(q_emb, social_embs)  # (1, N)
-    idxs_u = np.argsort(sim_u[0])[::-1][:k_corpus]
-    return json.dumps(soc_info[idxs_u])
+    selected = [soc_info[i] for i in idxs_py]
+    return selected
+
+    # sim_u = cosine_similarity(q_emb, social_embs)  # (1, N)
+    # idxs_u = np.argsort(sim_u[0])[::-1][:k_corpus]
+    # return json.dumps(soc_info[idxs_u])
 
 def order_articles(query_embeddings, filtered_ids, article_vectors):
     """
@@ -244,7 +247,7 @@ def table_lookup(indices):
 
     items_by_id = {item["ID"]: item for item in items_data}
 
-    def truncate_description(description, word_limit=20):
+    def truncate_description(description, word_limit=17):
         """Truncates description to specified word limit and adds '...' if truncated"""
         if not description:
             return ""
@@ -397,10 +400,10 @@ def episodes_search():
     print("DONE RANKING")
     return json.dumps(ranked_results, default=str)  
 
-@app.route("/comments")
-def save_comments():
-    data = request.get_json()
-    query = data.get("query")
+@app.route("/comments", methods=["POST"])
+def comments():
+    data = request.get_json(force=True)
+    query = data.get("query", "")
     query_vec = vectorize_query(query)
     comments = get_relevant_comments(query_vec)
     return comments
