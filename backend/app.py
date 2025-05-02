@@ -201,7 +201,7 @@ def get_relevant_comments(query_embeds):
         score = float(sim_u[0][i])
         results.append({
             "text": text,
-            "sim_score": score
+            "sim_score": round(score, 3)
         })
 
     return results
@@ -418,6 +418,8 @@ def episodes_search():
 def comments():
     data = request.get_json(force=True)
     query = data.get("query", "")
+    if query == "":
+        return json.dumps({"error": "Query cannot be empty"}), 400
     query_vec = vectorize_query(query)
     comments = get_relevant_comments(query_vec)
     return comments
