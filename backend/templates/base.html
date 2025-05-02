@@ -26,8 +26,8 @@
                         <img src="{{ url_for('static', filename='images/mag.png') }}" />
                         <select id="gender-dropdown" class="dropdown">
                             <option value="">I don't mind</option>
-                            <option value="men">Men</option>
-                            <option value="women">Women</option>
+                            <option value="Men">Men</option>
+                            <option value="Women">Women</option>
                         </select>
                     </div>
                     <h3>What item are you looking for?</h3>
@@ -37,10 +37,10 @@
                         <!-- <input placeholder="Sweaters, Pants, Shoes . . ." id="articleType"> -->
                         <select id="articleType" class="dropdown">
                             <option value="">I don't mind</option>
-                            <option value="T">Tops</option>
-                            <option value="B">Bottoms</option>
-                            <option value="S">Shoes</option>
-                            <option value="A">Accessories</option>
+                            <option value="Tops">Tops</option>
+                            <option value="Bottoms">Bottoms</option>
+                            <option value="Shoes">Shoes</option>
+                            <option value="Acessories">Accessories</option>
                         </select>
                     </div>
                     <h3>What is your budget?</h3>
@@ -97,7 +97,9 @@
                 <!-- SUBMIT BUTTON -->
                 <div class="submit-button">
                     <button onclick="filterText()">Get My Recommendations</button>
-                    <button id="refresh-button" onclick="refreshWithFeedback()" style="display: none; margin-top: 10px; background-color: #8A1B84;">Refresh with Feedback</button>
+                    <button id="refresh-button" onclick="refreshWithFeedback()"
+                        style="display: none; margin-top: 10px; background-color: #8A1B84;">Refresh with
+                        Feedback</button>
                 </div>
 
                 <div id="answer-box"></div>
@@ -112,14 +114,10 @@
                     .join(' ');
             }
 
-<<<<<<< Updated upstream
             function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore) {
-=======
-            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, prodId) {
->>>>>>> Stashed changes
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
-                <div class="product-card" data-product-id="${prodId}">
+                <div class="product-card">
                     <img src="${prodImgLink}" alt="${capitalizedTitle}" class="product-image" />
                     <div class="product-info">
                         <div class="product-data">
@@ -154,15 +152,15 @@
                 const productCard = button.closest('.product-card');
                 const voteContainer = button.closest('.vote-container');
                 const countSpan = voteContainer.querySelector('.vote-count');
-                
+
 
                 const oppositeType = voteType === 'up' ? 'down' : 'up';
                 const oppositeContainer = productCard.querySelector(`.vote-container:has(.${oppositeType}vote)`);
                 const oppositeCountSpan = oppositeContainer.querySelector('.vote-count');
-                
+
                 let count = parseInt(countSpan.textContent);
                 let oppositeCount = parseInt(oppositeCountSpan.textContent);
-                
+
                 // check if button active
                 if (button.classList.contains('active')) {
                     // REVERSE VOTING
@@ -172,7 +170,7 @@
                     // user is voting, add active state and set count to 1
                     button.classList.add('active');
                     count = 1;
-                    
+
                     // if opposite button is active, remove its active state and reset its count can't have both active
                     const oppositeButton = oppositeContainer.querySelector('button');
                     if (oppositeButton.classList.contains('active')) {
@@ -180,26 +178,26 @@
                         oppositeCount = 0;
                     }
                 }
-                
+
                 // update the displayed counts
                 countSpan.textContent = count;
                 oppositeCountSpan.textContent = oppositeCount;
-                
+
 
                 countSpan.classList.add('updated');
                 setTimeout(() => {
                     countSpan.classList.remove('updated');
                 }, 300);
-                
+
                 // refresh button
                 document.getElementById('refresh-button').style.display = 'block';
-                
+
                 // product info
                 const productId = productCard.dataset.productId;
-                
+
                 // current query
                 const query = document.getElementById('inspirationDesc').value;
-                
+
                 // send vote to backend
                 fetch('/save_vote', {
                     method: 'POST',
@@ -213,15 +211,15 @@
                         query: query
                     })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('Vote saved:', data.message);
-                    } else {
-                        console.error('Error saving vote:', data.error);
-                    }
-                })
-                .catch(error => console.error('Error saving vote:', error));
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Vote saved:', data.message);
+                        } else {
+                            console.error('Error saving vote:', data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error saving vote:', error));
             }
 
             // fic rocchio...
@@ -230,35 +228,35 @@
                 const budget = document.getElementById("slider").value;
                 const article = document.getElementById("articleType").value;
                 const description = document.getElementById("inspirationDesc").value;
-                
+
                 // Collect votes data - only counting active votes
                 const upvotes = {};
                 const downvotes = {};
-                
+
                 // Get all product cards
                 const productCards = document.querySelectorAll('.product-card');
                 productCards.forEach(card => {
                     const productId = card.dataset.productId;
                     const upvoteButton = card.querySelector('.upvote');
                     const downvoteButton = card.querySelector('.downvote');
-                    
+
                     if (upvoteButton.classList.contains('active')) {
                         upvotes[productId] = 1;
                     }
-                    
+
                     if (downvoteButton.classList.contains('active')) {
                         downvotes[productId] = 1;
                     }
                 });
-                
+
                 if (Object.keys(upvotes).length === 0 && Object.keys(downvotes).length === 0) {
                     alert('Please vote on some items first!');
                     return;
                 }
-                
+
                 // show loading state
                 document.getElementById("answer-box").innerHTML = "<div class='loading'>Updating recommendations based on your feedback...</div>";
-                
+
                 fetch("/feedback", {
                     method: 'POST',
                     headers: {
@@ -271,44 +269,44 @@
                         downvotes: downvotes
                     })
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok: ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // clear current
-                    document.getElementById("answer-box").innerHTML = "";
-                    
-                    // new results
-                    const seenItems = new Set();
-                    data.forEach(row => {
-                        if (!seenItems.has(row.prodName)) {
-                            seenItems.add(row.prodName);
-                            let tempDiv = document.createElement("div");
-                            tempDiv.innerHTML = answerBoxTemplate(
-                                row.prodName, 
-                                row.prodPrice, 
-                                row.prodImgLink, 
-                                row.prodLink, 
-                                row.prodDesc,
-                                row.prodId
-                            );
-                            document.getElementById("answer-box").appendChild(tempDiv);
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.statusText);
                         }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // clear current
+                        document.getElementById("answer-box").innerHTML = "";
+
+                        // new results
+                        const seenItems = new Set();
+                        data.forEach(row => {
+                            if (!seenItems.has(row.prodName)) {
+                                seenItems.add(row.prodName);
+                                let tempDiv = document.createElement("div");
+                                tempDiv.innerHTML = answerBoxTemplate(
+                                    row.prodName,
+                                    row.prodPrice,
+                                    row.prodImgLink,
+                                    row.prodLink,
+                                    row.prodDesc,
+                                    row.prodId
+                                );
+                                document.getElementById("answer-box").appendChild(tempDiv);
+                            }
+                        });
+
+                        if (seenItems.size == 0) {
+                            let emptyDiv = document.createElement("div");
+                            emptyDiv.innerHTML = noResults();
+                            document.getElementById("answer-box").appendChild(emptyDiv);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing results:', error);
+                        document.getElementById("answer-box").innerHTML = "<div class='error'>Error updating recommendations. Please try again.</div>";
                     });
-                    
-                    if (seenItems.size == 0) {
-                        let emptyDiv = document.createElement("div");
-                        emptyDiv.innerHTML = noResults();
-                        document.getElementById("answer-box").appendChild(emptyDiv);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error refreshing results:', error);
-                    document.getElementById("answer-box").innerHTML = "<div class='error'>Error updating recommendations. Please try again.</div>";
-                });
             }
 
             function filterText() {
@@ -318,7 +316,7 @@
                 const article = document.getElementById("articleType").value;
                 const description = document.getElementById("inspirationDesc").value;
 
-    
+
                 document.getElementById("refresh-button").style.display = "none";
 
                 if (!description) {
@@ -335,25 +333,21 @@
                 }).toString())
                     .then((response) => response.json())
                     .then((data) => {
-                        const seenItems = new Set(); 
+                        const seenItems = new Set();
                         data.slice(0, 8).forEach((row, index) => {
                             if (!seenItems.has(row.prodName)) {
                                 seenItems.add(row.prodName);
                                 let tempDiv = document.createElement("div");
-<<<<<<< Updated upstream
-                                tempDiv.innerHTML = answerBoxTemplate(row.prodName, row.prodPrice, row.prodImgLink, row.prodLink, row.prodDesc, row.simScore);
-=======
 
                                 const prodId = row.prodId !== undefined ? row.prodId : index;
                                 tempDiv.innerHTML = answerBoxTemplate(
-                                    row.prodName, 
-                                    row.prodPrice, 
-                                    row.prodImgLink, 
-                                    row.prodLink, 
+                                    row.prodName,
+                                    row.prodPrice,
+                                    row.prodImgLink,
+                                    row.prodLink,
                                     row.prodDesc,
-                                    prodId
+                                    row.simScore
                                 );
->>>>>>> Stashed changes
                                 document.getElementById("answer-box").appendChild(tempDiv);
                             }
                         });
@@ -372,13 +366,9 @@
             budgetSlider.oninput = function () {
                 budgetValue.innerHTML = "$" + (this.value * 50);
             }
-<<<<<<< Updated upstream
 
-
-=======
-            
             // CSS for active buttons
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const style = document.createElement('style');
                 style.textContent = `
                     .voting-buttons button.active {
@@ -388,6 +378,5 @@
                 `;
                 document.head.appendChild(style);
             });
->>>>>>> Stashed changes
         </script>
 </body>
