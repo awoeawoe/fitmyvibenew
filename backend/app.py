@@ -133,9 +133,9 @@ def order_articles(query_embeddings, filtered_ids, article_vectors):
     Takes the embedding of the query and the vectors of the searched articles as
     input, and returns a ranked list of article IDs based on similarity scores.
     """
-    k_corpus = 10
-    k_prod = min(len(filtered_ids), 20)
-    alpha, beta = 1.0, 0.75
+    k_corpus = 30
+    k_prod = min(len(filtered_ids), 25)
+    alpha, beta = 0.9, 1.3
 
     q_emb = query_embeddings
 
