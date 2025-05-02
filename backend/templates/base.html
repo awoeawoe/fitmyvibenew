@@ -195,8 +195,8 @@
                     });
                 })
                 .catch(err => {
-                  console.error('Error loading comments:', err);
-                  redditBox.innerHTML = '<p class="error"> Please wait one moment and try again.</p>';
+                    redditBox.innerHTML = `<p class="answer-title">No Reddit comments found.</p>`;
+                    return;
                 });
             }
 

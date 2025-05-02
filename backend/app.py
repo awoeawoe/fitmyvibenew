@@ -419,7 +419,7 @@ def comments():
     data = request.get_json(force=True)
     query = data.get("query", "")
     if query == "":
-        return json.dumps({"error": "Query cannot be empty"}), 400
+        return json.dumps({})
     query_vec = vectorize_query(query)
     comments = get_relevant_comments(query_vec)
     return comments
