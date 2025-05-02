@@ -112,7 +112,7 @@
                     .join(' ');
             }
 
-            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc) {
+            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
                 <div class="product-card">
@@ -124,7 +124,7 @@
                             <p class="clothing-desc">${prodDesc}</p>
                         </div>
                         <div class="product-metadata">
-                            <p class="similarity-score">Similarity: </p>
+                            <p class="similarity-score">Similarity: ${simScore}</p>
                             <p><em>Does it fit the vibe?</em></p>
                             <div class="voting-buttons">
                                 <button class="upvote">❤️</button>
@@ -174,7 +174,7 @@
                             if (!seenItems.has(row.prodName)) {
                                 seenItems.add(row.prodName);
                                 let tempDiv = document.createElement("div");
-                                tempDiv.innerHTML = answerBoxTemplate(row.prodName, row.prodPrice, row.prodImgLink, row.prodLink, row.prodDesc);
+                                tempDiv.innerHTML = answerBoxTemplate(row.prodName, row.prodPrice, row.prodImgLink, row.prodLink, row.prodDesc, row.simScore);
                                 document.getElementById("answer-box").appendChild(tempDiv);
                             }
                         });
@@ -190,10 +190,10 @@
             var budgetSlider = document.getElementById("slider");
             var budgetValue = document.getElementById("budget-slider-value");
             budgetValue.innerHTML = "$" + (budgetSlider.value * 50);
-            budgetSlider.oninput = function() {
+            budgetSlider.oninput = function () {
                 budgetValue.innerHTML = "$" + (this.value * 50);
             }
-            
+
 
         </script>
 </body>

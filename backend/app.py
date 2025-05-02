@@ -140,13 +140,19 @@ def order_articles(query_embeddings, filtered_ids, article_vectors):
         return search_dict
     
     search_dict = build_search_dict(filtered_ids)
+    # print(search_dict)
 
     sim_p = cosine_similarity(expanded, article_vectors)  # (1, N)
+    sim_top = [np.round(score, 3) for score in np.sort(sim_p[0])[::-1][:k_prod]]
     idxs_p = np.argsort(sim_p[0])[::-1][:k_prod]
+
+    searched_articles = [search_dict[search_id] for search_id in idxs_p]
+    articles_and_scores = list(zip(searched_articles, sim_top))
+    # print(articles_and_scores)
 
     print("IDXS_P PRINTING")
     print(idxs_p)
-    return [search_dict[search_id] for search_id in idxs_p]
+    return articles_and_scores
 
 
 def table_lookup(indices):
@@ -269,11 +275,18 @@ def episodes_search():
             new_rocchio_record(query, query_vector, gender, budget, article, filter_ids)
             rec = FEEDBACK_QUERY[query][-1]
 
-    ranked_idx   = order_articles(query_vector, filter_ids, article_vectors)
+    ranked_ids_and_scores = order_articles(query_vector, filter_ids, article_vectors)
+    ranked_idx = [idx for idx, _ in ranked_ids_and_scores]
+    ranked_scores = [score for _, score in ranked_ids_and_scores]
     ranked_results = table_lookup(ranked_idx)
 
+    # Attaching sim scores
+    count = 0
+    for result in ranked_results:
+        result['simScore'] = ranked_scores[count]
+        count += 1
+
     print("DONE RANKING")
-    #print(ranked_results)
     return json.dumps(ranked_results, default=str)
 
 @app.route("/feedback")
