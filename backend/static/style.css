@@ -184,14 +184,34 @@ input[type=range]::-webkit-slider-thumb {
     overflow: hidden;
     border-radius: 10px;
     cursor: pointer;
-    /* display: block; */
     transform: scale(1);
     transition: transform 0.3s ease-in-out;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .product-card:hover {
     transform: scale(0.98);
     transition: transform 0.3s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Add a subtle indicator that the card is clickable */
+.product-card::after {
+    content: "Click to view product";
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: rgba(163, 67, 134, 0.7);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.product-card:hover::after {
+    opacity: 1;
 }
 
 .product-card .product-image {
