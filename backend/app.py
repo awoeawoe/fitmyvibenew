@@ -32,15 +32,42 @@ os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 app = Flask(__name__)
 CORS(app)
 
-social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy")
+social_embs_1 = np.load("social-component/reddit/reddit_embs_1.npy", allow_pickle=True)
+social_embs_2 = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
+social_embs = np.concatenate(social_embs_1, social_embs_2)
 print(f"Reddit embedding shape: {social_embs.shape}")
+del social_embs_1
+del social_embs_2
 
-product_embs = np.load("social-component/reddit/prod_embs_better.npy")
+product_embs = np.load("social-component/reddit/prod_embs_better.npy", allow_pickle=True)
 print(f"Product embedding shape: {product_embs.shape}")
 
 comments_path = Path("social-component/reddit/filtered_texts_reddit.json")
 with comments_path.open("r", encoding="utf-8") as f:
     soc_info = json.load(f)
+print(f"Social info shape: {len(soc_info)}")
+
+merge_state_dict = {}
+files = ["tensor_pack/chunk_1_1.safetensors",
+         "tensor_pack/chunk_1_2.safetensors",
+         "tensor_pack/chunk_1_3.safetensors",
+         "tensor_pack/chunk_1_4.safetensors",
+         "tensor_pack/chunk_2.safetensors",
+         "tensor_pack/chunk_3.safetensors",
+         "tensor_pack/chunk_4.safetensors",
+         "tensor_pack/chunk_5.safetensors"]
+
+merged_file = "fashion-bert-output-v4/model.safetensors"
+
+def merge_files(files):
+    for file in files:
+        load_files_dict = load_file(file)
+        merge_state_dict.update(load_files_dict)
+    
+merge_files(files)
+
+save_file(merge_state_dict, merged_file)
+del merge_state_dict
 
 #rocchio helper - Updated to handle empty lists better
 def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
