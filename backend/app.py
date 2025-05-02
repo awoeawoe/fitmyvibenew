@@ -263,7 +263,6 @@ def episodes_search():
 
                 # Copy old set of upvotes and downvotes for this query
                 QUERY_STATES[NUM_QUERIES] = QUERY_STATES[old_query_id]
-                print(QUERY_STATES)
 
                 # Recalculating embedding
                 upvote_ids = []
@@ -281,7 +280,7 @@ def episodes_search():
                 updated_query = rocchio(query_vector, upvote_ids, downvote_ids)
                 
                 # Lookup
-                ranked_ids_and_scores = order_articles(query_vector, logged['candidates'], product_embs[logged['candidates']])
+                ranked_ids_and_scores = order_articles(updated_query, logged['candidates'], product_embs[logged['candidates']])
                 ranked_idx = [idx for idx, _ in ranked_ids_and_scores]
                 ranked_scores = [score for _, score in ranked_ids_and_scores]
                 ranked_results = table_lookup(ranked_idx)
@@ -302,9 +301,8 @@ def episodes_search():
     QUERY_STATES[NUM_QUERIES] = {}
     for prod_id in range(len(product_embs)):
         QUERY_STATES[NUM_QUERIES][prod_id] = (0, 0)
-    print(QUERY_STATES)
 
-    items_path = Path("COMBINED-FINAL-DEDUPED-CLEAN2.json")
+    items_path = Path("COMBINED-FINAL-DEDUPED-CLEAN3.json")
     with items_path.open("r", encoding="utf-8") as f:
         items_data = json.load(f)
 
@@ -404,8 +402,6 @@ def save_vote():
         else:
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] - 1)
 
-    print(QUERY_STATES)
-            
     return json.dumps({"success": True, "message": f"{vote_type} vote recorded for product {product_id}"}), 200
 
 
