@@ -84,7 +84,7 @@
                     <h3>What are you inspired by?</h3>
                     <div class="input-box">
                         <img src="{{ url_for('static', filename='images/mag.png') }}" />
-                        <input placeholder="A Place, Activity, Color . . ." id="inspirationDesc">
+                        <input placeholder="A Place, Activity, Aesthetic . . ." id="inspirationDesc">
                     </div>
                     <!--  <h3>What is a brand you love?</h3>
                     <div class="input-box" onclick="sendFocus()">
@@ -190,7 +190,7 @@
                     comments.forEach(c => {
                         const div = document.createElement('div');
                         div.className = 'reddit-box';
-                        div.innerHTML = `<p class="comment-body">${c}</p>`;
+                        div.innerHTML = `<p class="comment-body">${c.text} – Similarity Score: ${c.sim_score}</p>`;
                         redditBox.appendChild(div);
                     });
                 })
