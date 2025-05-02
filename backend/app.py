@@ -43,6 +43,7 @@ social_embs1 = product_embs = np.load("social-component/reddit/reddit_embs_1.npy
 social_embs2 = product_embs = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
 
 social_embs = np.concatenate((social_embs1, social_embs2), axis=0)
+print(f"Social embedding shape: {social_embs.shape}")
 
 product_embs = np.load("social-component/reddit/prod_embs_better.npy", allow_pickle=True)
 print(f"Product embedding shape: {product_embs.shape}")
@@ -52,15 +53,11 @@ with comments_path.open("r", encoding="utf-8") as f:
     soc_info = json.load(f)
 print(f"Social info shape: {len(soc_info)}")
 
-product_embs = np.load("social-component/reddit/prod_embs_better.npy", allow_pickle=True)
-print(f"Product embedding shape: {product_embs.shape}")
-
-comments_path = Path("social-component/reddit/filtered_texts_reddit.json")
-with comments_path.open("r", encoding="utf-8") as f:
-    soc_info = json.load(f)
-print(f"Social info shape: {len(soc_info)}")
-
-socinfo_id_to_text = {entry["id"]: entry["text"] for entry in soc_info}
+soc_count = 0
+socinfo_id_to_text = {}
+for entry in soc_info:
+    socinfo_id_to_text[soc_count] = entry
+    soc_count += 1
 
 merge_state_dict = {}
 files = ["tensor_pack/chunk_1_1.safetensors",
