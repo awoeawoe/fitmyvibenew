@@ -117,7 +117,7 @@
             function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore, prodId) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
-                <div class="product-card" id="${prodId}">
+                <div class="product-card" id="${prodId}" onclick="window.open('${prodLink}', '_blank')">
                     <img src="${prodImgLink}" alt="${capitalizedTitle}" class="product-image" />
                     <div class="product-info">
                         <div class="product-data">
@@ -130,11 +130,11 @@
                             <p><em>Does it fit the vibe?</em></p>
                             <div class="voting-buttons">
                                 <div class="vote-container">
-                                    <button class="upvote" onclick="updateVoteCount(this, 'up')">❤️</button>
+                                    <button class="upvote" onclick="updateVoteCount(this, 'up'); event.stopPropagation();">❤️</button>
                                     <span class="vote-count">0</span>
                                 </div>
                                 <div class="vote-container">
-                                    <button class="downvote" onclick="updateVoteCount(this, 'down')">💔</button>
+                                    <button class="downvote" onclick="updateVoteCount(this, 'down'); event.stopPropagation();">💔</button>
                                     <span class="vote-count">0</span>
                                 </div>
                             </div>
