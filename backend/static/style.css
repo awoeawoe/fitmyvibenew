@@ -223,17 +223,29 @@ input[type=range]::-webkit-slider-thumb {
     margin: 2pt;
 }
 
+/* Updated styles for voting buttons */
 .voting-buttons button {
     background-color: #00000000;
     border-color: #00000000;
     font-size: 15pt;
     transform: scale(1);
     transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .voting-buttons button:hover {
-    transform: scale(1.10);
-    transition: transform 0.3s ease-in-out;
+    transform: scale(1.15) !important;
+    transition: transform 0.2s ease-in-out;
+}
+
+/* New style for active buttons */
+.voting-buttons button.active {
+    transform: scale(1.2) !important;
+    box-shadow: 0 0 10px rgba(138, 27, 132, 0.5);
+    transition: all 0.3s ease-in-out;
 }
 
 .voting-buttons {
@@ -249,23 +261,7 @@ input[type=range]::-webkit-slider-thumb {
     gap: 8px;
 }
 
-.voting-buttons button {
-    background-color: #00000000;
-    border-color: #00000000;
-    font-size: 15pt;
-    transform: scale(1);
-    transition: transform 0.3s ease-in-out;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.voting-buttons button:hover {
-    transform: scale(1.10);
-    transition: transform 0.3s ease-in-out;
-}
-
+/* Enhanced vote count styling */
 .vote-count {
     font-size: 14pt;
     font-weight: bold;
@@ -273,17 +269,74 @@ input[type=range]::-webkit-slider-thumb {
     min-width: 24px;
     text-align: center;
     background-color: rgba(255, 255, 255, 0.7);
-    border-radius: 50%;
+    border-radius: 12px;
     padding: 2px 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
+/* Enhanced pulse animation */
 @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+    0% { transform: scale(1); background-color: rgba(255, 255, 255, 0.7); }
+    50% { transform: scale(1.3); background-color: rgba(254, 215, 226, 0.9); }
+    100% { transform: scale(1); background-color: rgba(255, 255, 255, 0.7); }
 }
 
 .vote-count.updated {
     animation: pulse 0.3s ease-in-out;
+}
+
+/* Improved loading and error states */
+.loading, .error {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+    color: #A34386;
+    width: 100%;
+}
+
+.loading {
+    position: relative;
+}
+
+.loading:after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 30px;
+    margin: 15px auto;
+    border-radius: 50%;
+    border: 3px solid rgba(163, 67, 134, 0.3);
+    border-top-color: #A34386;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error {
+    color: #d9534f;
+    background-color: rgba(217, 83, 79, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(217, 83, 79, 0.2);
+    margin: 20px auto;
+    max-width: 80%;
+}
+
+#refresh-button {
+    background-color: #8A1B84;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    font-family: 'Montserrat', sans-serif;
+    transition: background-color 0.3s;
+    display: none;
+}
+
+#refresh-button:hover {
+    background-color: #631160;
 }
