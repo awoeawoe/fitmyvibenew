@@ -60,6 +60,8 @@ with comments_path.open("r", encoding="utf-8") as f:
     soc_info = json.load(f)
 print(f"Social info shape: {len(soc_info)}")
 
+socinfo_id_to_text = {entry["id"]: entry["text"] for entry in soc_info}
+
 merge_state_dict = {}
 files = ["tensor_pack/chunk_1_1.safetensors",
          "tensor_pack/chunk_1_2.safetensors",
@@ -197,12 +199,7 @@ def get_relevant_comments(query_embeds):
     idxs_u  = np.argsort(sim_u[0])[::-1][:k_corpus]
     idxs_py = idxs_u.tolist()
 
-    selected = [soc_info[i] for i in idxs_py]
-    return selected
-
-    # sim_u = cosine_similarity(q_emb, social_embs)  # (1, N)
-    # idxs_u = np.argsort(sim_u[0])[::-1][:k_corpus]
-    # return json.dumps(soc_info[idxs_u])
+    return [socinfo_id_to_text[i] for i in idxs_py if i in socinfo_id_to_text]
 
 def order_articles(query_embeddings, filtered_ids, article_vectors):
     """
@@ -299,10 +296,10 @@ def episodes_search():
     budget = request.args.get("budget", default=None)
     if budget != "":
         budget_raw = int(budget)
-        mod3 = budget_raw % 3 + 1;
-        div3 = budget_raw / 3 + 1;
+        mod3 = budget_raw % 3 + 1
+        div3 = budget_raw / 3 + 1
 
-        base = 10 ** div3;
+        base = 10 ** div3
 
         budget = base * mod3
 
@@ -434,9 +431,9 @@ def save_vote():
 
     budget = data.get("budget")
     budget_raw = int(budget)
-    mod3 = budget_raw % 3 + 1;
-    div3 = budget_raw / 3 + 1;
-    base = 10 ** div3;
+    mod3 = budget_raw % 3 + 1
+    div3 = budget_raw / 3 + 1
+    base = 10 ** div3
     budget = base * mod3
     
 
