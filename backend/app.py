@@ -212,11 +212,7 @@ def episodes_search():
     query = request.args.get("inspirationDesc")
 
     gender = request.args.get("gender", default=None)
-    if gender == "men":
-        gender = "m"
-    elif gender == "women":
-        gender = "f"
-    else:
+    if gender == "":
         gender = None
 
     budget = request.args.get("budget", default=None)
@@ -226,15 +222,7 @@ def episodes_search():
         budget = float(budget) * 50
 
     article = request.args.get("article", default=None)
-    if article == "T":
-        article = "Tops"
-    elif article == "B":
-        article = "Bottoms"
-    elif article == "S":
-        article = "Shoes"
-    elif article == "A":
-        article = "Accessories"
-    else:
+    if article == "":
         article = None
 
     query_vector = vectorize_query(query)
