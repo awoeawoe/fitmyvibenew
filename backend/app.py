@@ -32,13 +32,43 @@ os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 app = Flask(__name__)
 CORS(app)
 
-social_embs_1 = np.load("social-component/reddit/reddit_embs_1.npy", allow_pickle=True)
-social_embs_2 = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
-social_embs = np.concatenate((social_embs_1, social_embs_2), axis=0)
+# social_embs_1 = np.load("social-component/reddit/reddit_embs_1.npy", allow_pickle=True)
+# social_embs_2 = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
+# social_embs = np.concatenate((social_embs_1, social_embs_2), axis=0)
 
-print(f"Reddit embedding shape: {social_embs.shape}")
-del social_embs_1
-del social_embs_2
+# print(f"Reddit embedding shape: {social_embs.shape}")
+# del social_embs_1
+# del social_embs_2
+
+# WORKING TEST WITH RE ALIGNED EMBEDDINGS + COMMENTS JSON
+social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy", allow_pickle=True)
+
+# social_embs1 = product_embs = np.load("reddit_embs_1.npy", allow_pickle=True)
+# social_embs2 = product_embs = np.load("reddit_embs_2.npy", allow_pickle=True)
+
+# social_embs = np.concatenate((social_embs1, social_embs2), axis=0)
+
+# def load_csv_to_list(path):
+#     data = []
+#     with open(path, newline='', encoding='utf-8') as f:
+#         reader = csv.reader(f)
+#         for row in reader:
+#             data.append([float(val) for val in row])
+#     return data
+
+# # SOCIAL EMBS
+# social_embs1 = load_csv_to_list(
+#     "social-component/reddit/reddit_embs1_align.csv"
+# )
+# social_embs2 = load_csv_to_list(
+#     "social-component/reddit/reddit_embs2_align.csv"
+# )
+# social_embs = np.array(social_embs1 + social_embs2)
+# print("Combined shape:", social_embs.shape)
+
+# # PRODUCT EMBS
+# product_embs = load_csv_to_list(
+#     "social-component/reddit/prod_embs_better.csv")
 
 product_embs = np.load("social-component/reddit/prod_embs_better.npy", allow_pickle=True)
 print(f"Product embedding shape: {product_embs.shape}")
@@ -183,10 +213,17 @@ def get_relevant_comments(query_embeds):
 
     sim_u   = cosine_similarity(query_embeds, social_embs)
     idxs_u  = np.argsort(sim_u[0])[::-1][:k_corpus]
-    idxs_py = idxs_u.tolist()
 
-    selected = [soc_info[i] for i in idxs_py]
-    return selected
+    results = []
+    for i in idxs_u:
+        text  = soc_info[i]
+        score = float(sim_u[0][i])
+        results.append({
+            "text": text,
+            "sim_score": score
+        })
+
+    return results  # Flask will jsonify this for you
 
     # sim_u = cosine_similarity(q_emb, social_embs)  # (1, N)
     # idxs_u = np.argsort(sim_u[0])[::-1][:k_corpus]
