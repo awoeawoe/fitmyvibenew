@@ -36,19 +36,34 @@ print(f"Reddit embedding shape: {social_embs.shape}")
 product_embs = np.load("social-component/reddit/prod_embs_better.npy")
 print(f"Product embedding shape: {product_embs.shape}")
 
-#rocchio helper
+#rocchio helper - Updated to handle empty lists better
 def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
-    if upvotes:
-        pos_centroid = product_embs[upvotes].mean(axis=0)
+    # Handle empty lists
+    if upvotes and len(upvotes) > 0:
+        try:
+            pos_centroid = product_embs[upvotes].mean(axis=0)
+        except Exception as e:
+            print(f"Error calculating positive centroid: {e}")
+            pos_centroid = np.zeros_like(q_vec)
     else:
-        pos_centroid = 0
-    if downvotes:
-        neg_centroid = product_embs[downvotes].mean(axis=0)
+        pos_centroid = np.zeros_like(q_vec)
+    
+    if downvotes and len(downvotes) > 0:
+        try:
+            neg_centroid = product_embs[downvotes].mean(axis=0)
+        except Exception as e:
+            print(f"Error calculating negative centroid: {e}")
+            neg_centroid = np.zeros_like(q_vec)
     else:
-        neg_centroid = 0
+        neg_centroid = np.zeros_like(q_vec)
 
     new_query = alpha * q_vec + beta * pos_centroid - gamma * neg_centroid
-    new_query /= np.linalg.norm(new_query, keepdims=True)
+    
+    # Check for zero vector
+    norm = np.linalg.norm(new_query)
+    if norm > 0:
+        new_query = new_query / norm
+    
     return new_query.astype("float32")
 
 #create a new entry for FEEDBACK_QUERY
@@ -154,7 +169,6 @@ def order_articles(query_embeddings, filtered_ids, article_vectors):
     print(idxs_p)
     return articles_and_scores
 
-
 def table_lookup(indices):
     """
     Looks up the relevant data about a set of articles given their article IDs.
@@ -188,7 +202,8 @@ def table_lookup(indices):
                 "prodPrice": rec.get("price"),
                 "prodImgLink": img_link,
                 "prodLink": prod_link,
-                "prodDesc": truncate_description(rec.get("description"))
+                "prodDesc": truncate_description(rec.get("description")),
+                "prodId": idx  # Include the product ID
             })
     return ranked_results
 
@@ -250,7 +265,6 @@ def episodes_search():
 
             if (gender_filter and budget_filter and article_filter):
                 filter_ids.append(id)
-                # print(f"ADDED IDX {id} TO CANDIDATES")
         
         return filter_ids
     
@@ -289,32 +303,141 @@ def episodes_search():
     print("DONE RANKING")
     return json.dumps(ranked_results, default=str)
 
-@app.route("/feedback")
-def feedback():
-    data = request.get_json(force=True)
-    query = data["query"]
-    query_emb = data["q_emb"]
-    filters = data["filters"]
-    up = data.get("upvotes", {})
-    down = data.get("downvotes", {})
 
-    if query not in FEEDBACK_QUERY:
-        return json.dumps({"error": "unknown query"}), 400
-
-    entry_list = FEEDBACK_QUERY[query]
-
-    ranked_results = []
-    for entry in entry_list:
-        if entry["filters"] == filters:
-            acc_votes(entry, up, down)
-            new_query = rocchio(query_emb, up, down)
-            entry["q_emb"] = new_query
-
-            candidates = entry["candidates"]
-            ranked_idx = order_articles(new_query, candidates, product_embs[candidates])
-            ranked_results = table_lookup(ranked_idx)
-            break
+@app.route("/save_vote", methods=['POST'])
+def save_vote():
+    data = request.get_json()
+    product_id = data.get("product_id")
+    vote_type = data.get("vote_type")
+    vote_value = data.get("vote_value", 1)  # default to 1 if not spec
+    query = data.get("query")
     
-    return json.dumps(ranked_results, default=str)
+    print(f"Vote received: {vote_type} (value: {vote_value}) for product {product_id} on query: {query}")
+    
+    if not query or not product_id or vote_type not in ['up', 'down']:
+        return json.dumps({"error": "Invalid data"}), 400
+    
+    try:
+        product_id = int(product_id)
+    except ValueError:
+        return json.dumps({"error": "Invalid product ID"}), 400
+    
+    if query not in FEEDBACK_QUERY:
+        return json.dumps({"error": "Unknown query"}), 400
+    
+    success = False
+    for entry in FEEDBACK_QUERY[query]:
+        if product_id in entry["candidates"]:
+            if vote_type == 'up':
+                if vote_value == 0:  
+                    if product_id in entry["upvotes"]:
+                        del entry["upvotes"][product_id]
+                else:
+                    entry["upvotes"][product_id] = 1
+                   
+                    if product_id in entry["downvotes"]:
+                        del entry["downvotes"][product_id]
+            else:  
+                if vote_value == 0: 
+                    if product_id in entry["downvotes"]:
+                        del entry["downvotes"][product_id]
+                else:  
+                    entry["downvotes"][product_id] = 1
+                    
+                    if product_id in entry["upvotes"]:
+                        del entry["upvotes"][product_id]
+            success = True
+    
+    if not success:
+        return json.dumps({"error": "Product not found in query candidates"}), 400
+            
+    return json.dumps({"success": True, "message": f"{vote_type} vote recorded for product {product_id}"}), 200
 
 
+@app.route("/feedback", methods=['GET', 'POST'])
+def feedback():
+    try:
+        data = request.get_json(force=True)
+        query = data["query"]
+        filters_list = data["filters"]  
+        gender, budget, article = filters_list
+        
+
+        if gender == "men":
+            gender = "m"
+        elif gender == "women":
+            gender = "f"
+        
+    
+        if budget and budget != "":
+            budget = float(budget) * 50
+
+        if article == "T":
+            article = "Tops"
+        elif article == "B":
+            article = "Bottoms"
+        elif article == "S":
+            article = "Shoes"
+        elif article == "A":
+            article = "Accessories"
+        
+        upvotes = data.get("upvotes", {})
+        downvotes = data.get("downvotes", {})
+
+        if query not in FEEDBACK_QUERY:
+            return json.dumps({"error": "unknown query"}), 400
+
+        entry_list = FEEDBACK_QUERY[query]
+
+        ranked_results = []
+        filters_tuple = (gender, budget, article)
+        
+        for entry in entry_list:
+            if entry["filters"] == filters_tuple:
+                upvotes_int = {int(k): v for k, v in upvotes.items()}
+                downvotes_int = {int(k): v for k, v in downvotes.items()}
+                
+                upvote_ids = list(upvotes_int.keys())
+                downvote_ids = list(downvotes_int.keys())
+                
+                print(f"Applying Rocchio with upvotes: {upvote_ids}, downvotes: {downvote_ids}")
+                
+                # apply Rocchio algorithm - only if we have votes
+                if upvote_ids or downvote_ids:
+                    new_query = rocchio(
+                        entry["q_emb"], 
+                        upvote_ids,
+                        downvote_ids
+                    )
+                    
+                    # update the entry with the new query
+                    entry["q_emb"] = new_query
+                else:
+                    new_query = entry["q_emb"]
+
+                # candidate product IDs
+                candidates = entry["candidates"]
+                
+                if not candidates:
+                    return json.dumps({"error": "No candidate products found"}), 400
+                
+                # get article vectors for these candidates
+                article_vectors = product_embs[candidates]
+            
+                # oorder articles based on the new query
+                ranked_idx = order_articles(new_query.reshape(1, -1), candidates, article_vectors)
+                
+                # look up product details
+                ranked_results = table_lookup(ranked_idx)
+                break
+        
+        if not ranked_results:
+            return json.dumps({"error": "No matching entry found or no results after reranking"}), 400
+        
+        return json.dumps(ranked_results, default=str)
+    
+    except Exception as e:
+        import traceback
+        print(f"Error in feedback route: {str(e)}")
+        print(traceback.format_exc())
+        return json.dumps({"error": f"Server error: {str(e)}"}), 500
