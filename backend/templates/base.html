@@ -117,7 +117,7 @@
             function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore, prodId, prodUpvotes, prodDownvotes) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
-                <div class="product-card" id="${prodId}">
+                <div class="product-card" id="${prodId}" onclick="window.open('${prodLink}', '_blank')">
                     <img src="${prodImgLink}" alt="${capitalizedTitle}" class="product-image" />
                     <div class="product-info">
                         <div class="product-data">
