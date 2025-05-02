@@ -61,7 +61,7 @@
                         <p class="budget-slider-value" id="budget-slider-value"></p>
                     </div>
                     <div class="budget-slider-container">
-                        <input type="range" min="1" max="6" value="1" class="budget-slider" id="slider">
+                        <input type="range" min="0" max="8" value="0" class="budget-slider" id="slider">
                     </div>
                 </div>
 
@@ -114,10 +114,10 @@
                     .join(' ');
             }
 
-            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore) {
+            function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore, prodId) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
-                <div class="product-card">
+                <div class="product-card" id="${prodId}">
                     <img src="${prodImgLink}" alt="${capitalizedTitle}" class="product-image" />
                     <div class="product-info">
                         <div class="product-data">
@@ -193,11 +193,13 @@
                 document.getElementById('refresh-button').style.display = 'block';
 
                 // product info
-                const productId = productCard.dataset.productId;
+                const productId = productCard.id;
 
-                // current query
+                // other info
                 const query = document.getElementById('inspirationDesc').value;
-
+                const gender = document.getElementById("gender-dropdown").value;
+                const budget = document.getElementById("slider").value;
+                const article = document.getElementById("articleType").value;
                 // send vote to backend
                 fetch('/save_vote', {
                     method: 'POST',
@@ -208,7 +210,10 @@
                         product_id: productId,
                         vote_type: voteType,
                         vote_value: count, // send 0/1
-                        query: query
+                        query: query,
+                        gender: gender,
+                        budget: budget,
+                        article: article
                     })
                 })
                     .then(response => response.json())
@@ -346,7 +351,8 @@
                                     row.prodImgLink,
                                     row.prodLink,
                                     row.prodDesc,
-                                    row.simScore
+                                    row.simScore,
+                                    row.prodId
                                 );
                                 document.getElementById("answer-box").appendChild(tempDiv);
                             }
@@ -362,9 +368,15 @@
             //budget
             var budgetSlider = document.getElementById("slider");
             var budgetValue = document.getElementById("budget-slider-value");
-            budgetValue.innerHTML = "$" + (budgetSlider.value * 50);
+            budgetValue.innerHTML = "$10";
             budgetSlider.oninput = function () {
-                budgetValue.innerHTML = "$" + (this.value * 50);
+
+                mod3 = this.value % 3 + 1;
+                div3 = Math.floor(this.value / 3) + 1;
+
+                base = 10 ** div3;
+
+                budgetValue.innerHTML = "$" + (base * mod3);
             }
 
             // CSS for active buttons

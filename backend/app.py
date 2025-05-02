@@ -68,6 +68,11 @@ def rocchio(q_vec, upvotes, downvotes, alpha=1.0, beta=0.75, gamma=0.25):
 
 #create a new entry for FEEDBACK_QUERY
 def new_rocchio_record(query, query_vector, g, b, c, candidates):
+
+    if g == None:
+        g = ""
+    if c == None:
+        c = ""
     
     new_entry = {
         "q_emb" : query_vector,
@@ -80,6 +85,7 @@ def new_rocchio_record(query, query_vector, g, b, c, candidates):
     if query not in FEEDBACK_QUERY:
         FEEDBACK_QUERY[query] = []
     FEEDBACK_QUERY[query].append(new_entry)
+    print(FEEDBACK_QUERY)
 
 
 #increment upvotes and downvotes
@@ -219,7 +225,13 @@ def episodes_search():
     if budget == "":
         budget == None
     else:
-        budget = float(budget) * 50
+        budget_raw = int(budget)
+        mod3 = budget_raw % 3 + 1;
+        div3 = budget_raw / 3 + 1;
+
+        base = 10 ** div3;
+
+        budget = base * mod3
 
     article = request.args.get("article", default=None)
     if article == "":
@@ -299,8 +311,19 @@ def save_vote():
     vote_type = data.get("vote_type")
     vote_value = data.get("vote_value", 1)  # default to 1 if not spec
     query = data.get("query")
+    gender = data.get("gender")
+
+    budget = data.get("budget")
+    budget_raw = int(budget)
+    mod3 = budget_raw % 3 + 1;
+    div3 = budget_raw / 3 + 1;
+    base = 10 ** div3;
+    budget = base * mod3
+
+    article = data.get("article")
     
     print(f"Vote received: {vote_type} (value: {vote_value}) for product {product_id} on query: {query}")
+    print(f"(Current filter settings: {gender}; {budget}; {article})")
     
     if not query or not product_id or vote_type not in ['up', 'down']:
         return json.dumps({"error": "Invalid data"}), 400
@@ -313,9 +336,35 @@ def save_vote():
     if query not in FEEDBACK_QUERY:
         return json.dumps({"error": "Unknown query"}), 400
     
-    success = False
+    # success = False
+    # for entry in FEEDBACK_QUERY[query]:
+    #     if product_id in entry["candidates"]:
+    #         if vote_type == 'up':
+    #             if vote_value == 0:  
+    #                 if product_id in entry["upvotes"]:
+    #                     del entry["upvotes"][product_id]
+    #             else:
+    #                 entry["upvotes"][product_id] = 1
+                   
+    #                 if product_id in entry["downvotes"]:
+    #                     del entry["downvotes"][product_id]
+    #         else:  
+    #             if vote_value == 0: 
+    #                 if product_id in entry["downvotes"]:
+    #                     del entry["downvotes"][product_id]
+    #             else:  
+    #                 entry["downvotes"][product_id] = 1
+                    
+    #                 if product_id in entry["upvotes"]:
+    #                     del entry["upvotes"][product_id]
+    #         success = True
+
     for entry in FEEDBACK_QUERY[query]:
-        if product_id in entry["candidates"]:
+        
+        print(entry['filters'])
+        print((gender, budget, article))
+
+        if entry['filters'] == (gender, budget, article):
             if vote_type == 'up':
                 if vote_value == 0:  
                     if product_id in entry["upvotes"]:
@@ -334,10 +383,6 @@ def save_vote():
                     
                     if product_id in entry["upvotes"]:
                         del entry["upvotes"][product_id]
-            success = True
-    
-    if not success:
-        return json.dumps({"error": "Product not found in query candidates"}), 400
             
     return json.dumps({"success": True, "message": f"{vote_type} vote recorded for product {product_id}"}), 200
 
@@ -346,28 +391,10 @@ def save_vote():
 def feedback():
     try:
         data = request.get_json(force=True)
+        print(data)
         query = data["query"]
         filters_list = data["filters"]  
         gender, budget, article = filters_list
-        
-
-        if gender == "men":
-            gender = "m"
-        elif gender == "women":
-            gender = "f"
-        
-    
-        if budget and budget != "":
-            budget = float(budget) * 50
-
-        if article == "T":
-            article = "Tops"
-        elif article == "B":
-            article = "Bottoms"
-        elif article == "S":
-            article = "Shoes"
-        elif article == "A":
-            article = "Accessories"
         
         upvotes = data.get("upvotes", {})
         downvotes = data.get("downvotes", {})
