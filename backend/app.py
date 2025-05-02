@@ -392,6 +392,7 @@ def save_vote():
     div3 = budget_raw / 3 + 1;
     base = 10 ** div3;
     budget = base * mod3
+    
 
     article = data.get("article")
     
@@ -417,10 +418,10 @@ def save_vote():
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0] + 1, former_tuple[1])
         else:
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0] - 1, former_tuple[1])
-    else:
+    else: #this is for downvotes
         if vote_value == 1:
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] + 1)
-        else:
+        else: #if the value is 0
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] - 1)
 
     return json.dumps({"success": True, "message": f"{vote_type} vote recorded for product {product_id}"}), 200
