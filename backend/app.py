@@ -39,10 +39,12 @@ CORS(app)
 # WORKING TEST WITH RE ALIGNED EMBEDDINGS + COMMENTS JSON
 # social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy", allow_pickle=True)
 
-social_embs1 = product_embs = np.load("social-component/reddit/reddit_embs_1.npy", allow_pickle=True)
-social_embs2 = product_embs = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
+social_embs1 = np.load("social-component/reddit/complete_reddit_embs1.npy", allow_pickle=True)
+social_embs2 = np.load("social-component/reddit/complete_reddit_embs2.npy", allow_pickle=True)
+social_embs3 = np.load("social-component/reddit/complete_reddit_embs3.npy", allow_pickle=True)
 
 social_embs = np.concatenate((social_embs1, social_embs2), axis=0)
+social_embs = np.concatenate((social_embs, social_embs3), axis=0)
 print(f"Social embedding shape: {social_embs.shape}")
 
 product_embs = np.load("social-component/reddit/prod_embs_better.npy", allow_pickle=True)
