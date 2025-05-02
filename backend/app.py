@@ -32,9 +32,13 @@ os.environ['ROOT_PATH'] = os.path.abspath(os.path.join("..",os.curdir))
 app = Flask(__name__)
 CORS(app)
 
+<<<<<<< HEAD
 social_embs_1 = np.load("social-component/reddit/reddit_embs_1.npy", allow_pickle=True)
 social_embs_2 = np.load("social-component/reddit/reddit_embs_2.npy", allow_pickle=True)
 social_embs = np.concatenate(social_embs_1, social_embs_2)
+=======
+social_embs = np.load("social-component/reddit/julia_tries_reddit_embs.npy", allow_pickle=True)
+>>>>>>> fa44408690a626bde071113f8ec0024ce71f3ecb
 print(f"Reddit embedding shape: {social_embs.shape}")
 del social_embs_1
 del social_embs_2
@@ -419,6 +423,7 @@ def save_vote():
     div3 = budget_raw / 3 + 1;
     base = 10 ** div3;
     budget = base * mod3
+    
 
     article = data.get("article")
     
@@ -444,10 +449,10 @@ def save_vote():
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0] + 1, former_tuple[1])
         else:
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0] - 1, former_tuple[1])
-    else:
+    else: #this is for downvotes
         if vote_value == 1:
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] + 1)
-        else:
+        else: #if the value is 0
             QUERY_STATES[NUM_QUERIES][product_id] = (former_tuple[0], former_tuple[1] - 1)
 
     return json.dumps({"success": True, "message": f"{vote_type} vote recorded for product {product_id}"}), 200

@@ -117,8 +117,11 @@
             function answerBoxTemplate(title, titleDesc, prodImgLink, prodLink, prodDesc, simScore, prodId, prodUpvotes, prodDownvotes) {
                 const capitalizedTitle = capitalizeTitle(title);
                 return `
-                <div class="product-card" id="${prodId}" onclick="window.open('${prodLink}', '_blank')">
+                <div class="product-card" id="${prodId}">
                     <img src="${prodImgLink}" alt="${capitalizedTitle}" class="product-image" />
+                    <div class="view-product-button" onclick="openProductLink('${prodLink}')">
+                        Click here to view product 
+                    </div>
                     <div class="product-info">
                         <div class="product-data">
                             <h3 class="clothing-title">${capitalizedTitle}</h3>
@@ -141,6 +144,13 @@
                         </div>
                     </div>                    
                 </div>`;
+            }
+
+            // Add function to open the product link in a new tab
+            function openProductLink(url) {
+                if (url) {
+                    window.open(url, '_blank');
+                }
             }
 
             function noResults() {
@@ -189,7 +199,7 @@
                                 document.getElementById("answer-box").appendChild(tempDiv);
                             }
                         });
-                        if (seenItems.size == 0) {
+                        if (seenItems.size == 0) { 
                             let emptyDiv = document.createElement("div");
                             emptyDiv.innerHTML = noResults();
                             document.getElementById("answer-box").appendChild(emptyDiv);
@@ -199,6 +209,11 @@
 
             // changed so it uses a true like/dislike system
             function updateVoteCount(button, voteType) {
+                // Stop the click from propagating to the product card
+                if (event) {
+                    event.stopPropagation();
+                }
+                
                 const productCard = button.closest('.product-card');
                 const voteContainer = button.closest('.vote-container');
                 const countSpan = voteContainer.querySelector('.vote-count');
@@ -206,47 +221,59 @@
                 const oppositeType = voteType === 'up' ? 'down' : 'up';
                 const oppositeContainer = productCard.querySelector(`.vote-container:has(.${oppositeType}vote)`);
                 const oppositeCountSpan = oppositeContainer.querySelector('.vote-count');
-
-                let count = parseInt(countSpan.textContent);
-                let oppositeCount = parseInt(oppositeCountSpan.textContent);
-
-                // check if button active
+                const oppositeButton = oppositeContainer.querySelector('button');
+                
+                // Get current vote counts
+                let currentCount = parseInt(countSpan.textContent || "0");
+                let oppositeCount = parseInt(oppositeCountSpan.textContent || "0");
+                
+                let voteValue;
+                
+                // Check if button is already active
                 if (button.classList.contains('active')) {
-                    // REVERSE VOTING
+                    // User is un-voting, remove active state
                     button.classList.remove('active');
-                    count = 0;
+                    countSpan.textContent = currentCount - 1;  // Decrease count by 1
+                    voteValue = 0; // Send 0 to server to remove vote
                 } else {
-                    // user is voting, add active state and set count to 1
+                    // User is voting, add active state
                     button.classList.add('active');
-                    count = 1;
-
-                    // if opposite button is active, remove its active state and reset its count can't have both active
-                    const oppositeButton = oppositeContainer.querySelector('button');
+                    countSpan.textContent = currentCount + 1;  // Increase count by 1
+                    voteValue = 1; // Send 1 to server to add vote
+                    
+                    // If opposite button is active, deactivate it
                     if (oppositeButton.classList.contains('active')) {
                         oppositeButton.classList.remove('active');
-                        oppositeCount = 0;
+                        oppositeCountSpan.textContent = oppositeCount - 1; // Decrease opposite count by 1
+                        
+                        // Send request to remove the opposite vote
+                        sendVoteToServer(productCard.id, oppositeType, 0);
                     }
                 }
 
-                // update the displayed counts
-                countSpan.textContent = count;
-                oppositeCountSpan.textContent = oppositeCount;
-
-
+                // Visual feedback animation
                 countSpan.classList.add('updated');
                 setTimeout(() => {
                     countSpan.classList.remove('updated');
                 }, 300);
 
-                // product info
-                const productId = productCard.id;
+                // Send the vote to the server
+                sendVoteToServer(productCard.id, voteType, voteValue);
+                
+                // Debug log
+                console.log(`Vote ${voteType} for product ${productCard.id}: Value=${voteValue}`);
+                console.log(`Current counts - Up: ${countSpan.textContent}, Down: ${oppositeCountSpan.textContent}`);
+            }
 
-                // other info
+            // Separate function to handle server communication
+            function sendVoteToServer(productId, voteType, voteValue) {
+                // Get query parameters
                 const query = document.getElementById('inspirationDesc').value;
                 const gender = document.getElementById("gender-dropdown").value;
                 const budget = document.getElementById("slider").value;
                 const article = document.getElementById("articleType").value;
-                // send vote to backend
+                
+                // Send vote to backend
                 fetch('/save_vote', {
                     method: 'POST',
                     headers: {
@@ -255,23 +282,111 @@
                     body: JSON.stringify({
                         product_id: productId,
                         vote_type: voteType,
-                        vote_value: count, // send 0/1
+                        vote_value: voteValue, // 0 or 1
                         query: query,
                         gender: gender,
                         budget: budget,
                         article: article
                     })
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            console.log('Vote saved:', data.message);
-                        } else {
-                            console.error('Error saving vote:', data.error);
-                        }
-                    })
-                    .catch(error => console.error('Error saving vote:', error));
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Vote saved:', data.message);
+                    } else {
+                        console.error('Error saving vote:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error saving vote:', error));
             }
+    //         function updateVoteCount(button, voteType) {
+    // // Stop the click from propagating to the product card
+    //             if (event) {
+    //                 event.stopPropagation();
+    //             }
+                
+    //             const productCard = button.closest('.product-card');
+    //             const voteContainer = button.closest('.vote-container');
+    //             const countSpan = voteContainer.querySelector('.vote-count');
+
+    //             const oppositeType = voteType === 'up' ? 'down' : 'up';
+    //             const oppositeContainer = productCard.querySelector(`.vote-container:has(.${oppositeType}vote)`);
+    //             const oppositeCountSpan = oppositeContainer.querySelector('.vote-count');
+    //             const oppositeButton = oppositeContainer.querySelector('button');
+                
+    //             let voteValue;
+                
+    //             // Check if button is already active
+    //             if (button.classList.contains('active')) {
+    //                 // User is un-voting, remove active state
+    //                 button.classList.remove('active');
+    //                 countSpan.textContent = "0";  // Reset to zero
+    //                 voteValue = 0; // Send 0 to server to remove vote
+    //             } else {
+    //                 // User is voting, add active state
+    //                 button.classList.add('active');
+    //                 countSpan.textContent = "1";  // Set to one (since it's just a toggle)
+    //                 voteValue = 1; // Send 1 to server to add vote
+                    
+    //                 // If opposite button is active, deactivate it
+    //                 if (oppositeButton.classList.contains('active')) {
+    //                 oppositeButton.classList.remove('active');
+    //                 oppositeCountSpan.textContent = "0"; // Reset opposite count
+                    
+    //                 // Send request to remove the opposite vote
+    //                 sendVoteToServer(productCard.id, oppositeType, 0);
+    //             }
+    //         }
+
+    //         // Visual feedback animation
+    //         countSpan.classList.add('updated');
+    //         setTimeout(() => {
+    //             countSpan.classList.remove('updated');
+    //         }, 300);
+
+    //         // Send the vote to the server
+    //         sendVoteToServer(productCard.id, voteType, voteValue);
+            
+    //         // Debug log
+    //         console.log(`Vote ${voteType} for product ${productCard.id}: Value=${voteValue}`);
+    //         console.log(`Current counts - Up: ${countSpan.textContent}, Down: ${oppositeCountSpan.textContent}`);
+    //     }
+
+        // // Separate function to handle server communication
+        // function sendVoteToServer(productId, voteType, voteValue) {
+        //     // Get query parameters
+        //     const query = document.getElementById('inspirationDesc').value;
+        //     const gender = document.getElementById("gender-dropdown").value;
+        //     const budget = document.getElementById("slider").value;
+        //     const article = document.getElementById("articleType").value;
+            
+        //     // Send vote to backend
+        //     fetch('/save_vote', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //         },
+        //         body: JSON.stringify({
+        //             product_id: productId,
+        //             vote_type: voteType,
+        //             vote_value: voteValue, // 0 or 1
+        //             query: query,
+        //             gender: gender,
+        //             budget: budget,
+        //             article: article
+        //         })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.success) {
+        //             console.log('Vote saved:', data.message);
+        //         } else {
+        //             console.error('Error saving vote:', data.error);
+        //         }
+        //     })
+        //     .catch(error => console.error('Error saving vote:', error));
+        // }
+            
 
             // // fic rocchio...
             // function refreshWithFeedback() {
